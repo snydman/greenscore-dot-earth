@@ -1,0 +1,14 @@
+{
+  "VTI": {
+    "name": "Vanguard Total Stock Market ETF",
+    "fossilFlag": "unknown",
+    "source": "placeholder",
+    "asOf": "2026-03-01"
+  },
+  "ICLN": {
+    "name": "iShares Global Clean Energy ETF",
+    "fossilFlag": "unknown",
+    "source": "placeholder",
+    "asOf": "2026-03-01"
+  }
+}
