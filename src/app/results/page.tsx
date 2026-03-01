@@ -27,8 +27,7 @@ const IMPROVEMENTS = [
 ];
 
 export default function ResultsPage() {
-  const percent = Math.round((MOCK_SCORE / MOCK_MAX) * 100);
-
+  
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--gs-bg)] px-4 py-10 sm:py-12">
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
@@ -73,12 +72,9 @@ export default function ResultsPage() {
             </div>
 
             <div className="text-xs text-[color:var(--gs-text-muted)]">
-              Percentile:{" "}
-              <span className="font-semibold text-[color:var(--gs-text-main)]">
-                approx. {percent}th
-              </span>{" "}
-              compared to a typical high-income household in North America.
-            </div>
+  Confidence: <span className="font-semibold text-[color:var(--gs-text-main)]">Low (prototype)</span>{" "}
+  — this is example output to validate the experience, not a calibrated benchmark.
+</div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Link href="/quiz">
