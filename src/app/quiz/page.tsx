@@ -58,6 +58,14 @@ export default function QuizPage() {
 
   function handleNext() {
     if (isLast) {
+      const payload = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        answers: {
+          tickers: data.knowsTickers ? data.tickers : "",
+        },
+      };
+      localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
       router.push("/results");
       return;
     }
