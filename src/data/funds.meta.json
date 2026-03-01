@@ -1,0 +1,13 @@
+{
+  "source": "Fossil Free Funds dataset (CSV)",
+  "rawFile": "data/raw/fossilfund_dataset.csv",
+  "generatedAt": "2026-03-01T22:35:00.734Z",
+  "rowsIn": 110510,
+  "fundsOut": 108086,
+  "detectedColumns": {
+    "ticker": "Fund profile: Ticker",
+    "name": "Fund profile: Fund name",
+    "fossilScore": null,
+    "fossilGrade": "Fossil Free Funds: Fossil fuel grade"
+  }
+}
