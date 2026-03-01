@@ -1,25 +1,260 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button, Card, StepProgress } from "../../components/ui";
+
+type QuizState = {
+  bankName: string;
+  knowsTickers: boolean | null;
+  tickers: string;
+  transport: string;
+  heating: string;
+  cooking: string;
+};
+
+const TOTAL_STEPS = 6;
 
 export default function QuizPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [data, setData] = useState<QuizState>({
+    bankName: "",
+    knowsTickers: null,
+    tickers: "",
+    transport: "",
+    heating: "",
+    cooking: "",
+  });
+
+  const isFirst = step === 1;
+  const isLast = step === TOTAL_STEPS;
+
+  const canGoNext = useMemo(() => {
+    switch (step) {
+      case 1:
+        return data.bankName.trim().length > 0;
+      case 2:
+        return data.knowsTickers !== null;
+      case 3:
+        if (data.knowsTickers) return data.tickers.trim().length > 0;
+        return true;
+      case 4:
+        return !!data.transport;
+      case 5:
+        return !!data.heating;
+      case 6:
+        return !!data.cooking;
+      default:
+        return false;
+    }
+  }, [data, step]);
+
+  function handleBack() {
+    if (!isFirst) setStep((prev) => Math.max(prev - 1, 1));
+  }
+
+  function handleNext() {
+    if (isLast) {
+      router.push("/results");
+      return;
+    }
+    setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+  }
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="mx-auto w-full max-w-xl rounded-2xl bg-white px-6 py-10 text-center shadow-sm ring-1 ring-slate-200">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Quiz
-        </h1>
-        <p className="mt-3 text-sm text-slate-600">
-          Questionnaire wizard placeholder.
-        </p>
-        <div className="mt-8">
-          <Link
-            href="/"
-            className="text-sm font-semibold text-emerald-700 hover:text-emerald-800"
-          >
-            ← Back to Home
-          </Link>
+    <main className="gs-container py-10 sm:py-14">
+      <header className="flex items-center justify-between">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--gs-text-main)] hover:opacity-90"
+        >
+          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
+            G
+          </span>
+          GreenScore
+        </Link>
+        <span className="text-xs text-slate-500">Prototype — answers are not stored.</span>
+      </header>
+
+      <div className="mx-auto mt-8 w-full max-w-3xl">
+        <Card className="space-y-6">
+          <StepProgress current={step} total={TOTAL_STEPS} />
+
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {step === 1 && "Your day-to-day banking"}
+              {step === 2 && "Do you know your fund tickers?"}
+              {step === 3 && "List any tickers you know"}
+              {step === 4 && "How do you usually get around?"}
+              {step === 5 && "How is your home heated?"}
+              {step === 6 && "How do you mostly cook at home?"}
+            </h1>
+            <p className="text-sm text-slate-600">
+              Directional answers are fine — this is a snapshot, not a full diagnostic.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {step === 1 && (
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">What&apos;s the main bank you use?</label>
+                <input
+                  type="text"
+                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                  placeholder="e.g. Green Valley Bank"
+                  value={data.bankName}
+                  onChange={(e) => setData((prev) => ({ ...prev, bankName: e.target.value }))}
+                />
+                <p className="text-xs text-slate-500">
+                  This helps us reason about how your cash is working behind the scenes.
+                </p>
+              </div>
+            )}
+
+            {step === 2 && (
+              <div className="space-y-3 text-left">
+                <p className="text-sm font-medium">
+                  Do you know the ticker symbols for any funds or stocks you hold?
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    variant={data.knowsTickers === true ? "primary" : "secondary"}
+                    className="w-full sm:w-auto"
+                    onClick={() => setData((prev) => ({ ...prev, knowsTickers: true }))}
+                  >
+                    Yes, I know some
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={data.knowsTickers === false ? "primary" : "secondary"}
+                    className="w-full sm:w-auto"
+                    onClick={() => setData((prev) => ({ ...prev, knowsTickers: false, tickers: "" }))}
+                  >
+                    Not really
+                  </Button>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                  onClick={() => setData((prev) => ({ ...prev, knowsTickers: false, tickers: "" }))}
+                >
+                  Skip / I don&apos;t know
+                </button>
+              </div>
+            )}
+
+            {step === 3 && data.knowsTickers && (
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">Enter any fund or stock tickers you know</label>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                  placeholder="e.g. VTI, ICLN, AAPL"
+                  value={data.tickers}
+                  onChange={(e) => setData((prev) => ({ ...prev, tickers: e.target.value }))}
+                />
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                  onClick={() => setData((prev) => ({ ...prev, tickers: "" }))}
+                >
+                  Skip / I&apos;ll add these later
+                </button>
+              </div>
+            )}
+
+            {step === 3 && !data.knowsTickers && (
+              <p className="text-sm text-slate-700">
+                No problem — we&apos;ll treat your investments as a diversified mix for now.
+              </p>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">How do you primarily get around?</label>
+                <select
+                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                  value={data.transport}
+                  onChange={(e) => setData((prev) => ({ ...prev, transport: e.target.value }))}
+                >
+                  <option value="">Select one</option>
+                  <option value="gas">Gas</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="phev">Plug-in hybrid (PHEV)</option>
+                  <option value="ev">Fully electric (EV)</option>
+                  <option value="none">None / mostly car-free</option>
+                  <option value="not_sure">Not sure</option>
+                </select>
+              </div>
+            )}
+
+            {step === 5 && (
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">How is your home mostly heated?</label>
+                <select
+                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                  value={data.heating}
+                  onChange={(e) => setData((prev) => ({ ...prev, heating: e.target.value }))}
+                >
+                  <option value="">Select one</option>
+                  <option value="heat_pump">Heat pump</option>
+                  <option value="gas">Gas furnace / boiler</option>
+                  <option value="oil">Oil</option>
+                  <option value="propane">Propane</option>
+                  <option value="electric_resistance">Electric resistance</option>
+                  <option value="not_sure">Not sure</option>
+                </select>
+              </div>
+            )}
+
+            {step === 6 && (
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium">And how do you mostly cook at home?</label>
+                <select
+                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                  value={data.cooking}
+                  onChange={(e) => setData((prev) => ({ ...prev, cooking: e.target.value }))}
+                >
+                  <option value="">Select one</option>
+                  <option value="induction">Induction</option>
+                  <option value="electric">Electric</option>
+                  <option value="gas">Gas</option>
+                  <option value="not_sure">Not sure / mixed</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-4">
+            <Button variant="ghost" size="sm" disabled={isFirst} onClick={handleBack}>
+              Back
+            </Button>
+
+            <div className="flex items-center gap-3">
+              {!isLast && (
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                  onClick={handleNext}
+                >
+                  Skip this step
+                </button>
+              )}
+              <Button size="sm" disabled={!canGoNext} onClick={handleNext}>
+                {isLast ? "See results" : "Next"}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <div className="mt-4 text-center text-xs text-slate-500">
+          Prototype — educational only. Not financial, tax, or legal advice.
         </div>
       </div>
     </main>
   );
 }
-

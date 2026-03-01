@@ -1,4 +1,95 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@config "../../tailwind.config.ts";
+@import "tailwindcss";
 
+/* GreenScore: modern, soft, earthy theme */
+@layer base {
+  :root {
+    /* Surfaces */
+    --gs-bg: #f4f1e9;          /* warm parchment */
+    --gs-surface: #ffffff;     /* clean card */
+    --gs-surface-muted: #f6f3ec;
+    --gs-border-subtle: #e2ddd1;
+    --gs-border-strong: #cbbfa8;
+
+    /* Text */
+    --gs-text-main: #0f172a;   /* slate-900 */
+    --gs-text-muted: #475569;  /* slate-600 */
+
+    /* Accents (earth tones) */
+    --gs-accent: #1b7a4a;      /* deep green */
+    --gs-accent-deep: #145c39; /* deeper green */
+    --gs-accent-soft: #d9f2e3; /* soft mint */
+    --gs-brown: #8a5a2b;       /* warm brown */
+    --gs-sand: #f2e6d3;        /* sand */
+
+    /* Focus ring */
+    --gs-ring: 27 122 74;      /* rgb for focus ring */
+  }
+
+  html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--gs-bg);
+    color: var(--gs-text-main);
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgb(var(--gs-ring) / 0.20);
+    border-color: rgb(var(--gs-ring) / 0.85);
+  }
+}
+
+/* Utilities implemented as plain CSS to avoid Tailwind @apply compatibility issues */
+.gs-container {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  max-width: 72rem; /* ~max-w-6xl */
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+@media (min-width: 640px) {
+  .gs-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .gs-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+.gs-card {
+  border-radius: 1.5rem; /* rounded-3xl */
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.gs-muted {
+  color: var(--gs-text-muted);
+}
+
+.gs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--gs-accent-soft) 70%, white 30%);
+  color: color-mix(in srgb, var(--gs-accent-deep) 90%, black 10%);
+}
