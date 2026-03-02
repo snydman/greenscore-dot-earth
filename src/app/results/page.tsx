@@ -1,5 +1,6 @@
 "use client";
 
+import { scoreInvestments } from "../../lib/scoring/investments";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import funds from "../../data/funds.json";
@@ -77,7 +78,10 @@ export default function ResultsPage() {
     }
     return { found, unknown };
   }, [tickers]);
-
+  const investment = useMemo(() => {
+    const raw = saved?.answers.tickers ?? "";
+    return scoreInvestments(raw, funds as Record<string, any>);
+  }, [saved]);
   return (
     <main className="gs-container py-10 sm:py-12">
       
@@ -140,7 +144,12 @@ export default function ResultsPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Investments (data-backed prototype)
             </p>
-
+            <div className="flex flex-wrap items-center justify-between gap-3">
+  <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+    Investments score: {investment.points} / {investment.maxPoints}
+  </div>
+  <span className="gs-chip">Confidence: {investment.confidence}</span>
+</div>
             {tickers.length === 0 ? (
               <p className="text-sm text-[color:var(--gs-text-muted)]">
                 No tickers found from the quiz yet. Try entering something like <span className="font-semibold">VTI, ICLN</span>.
