@@ -166,7 +166,34 @@ export default function ResultsPage() {
                     </span>
                   ))}
                 </div>
+                <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+  <div className="text-xs font-semibold text-slate-600">How we scored your tickers</div>
+  <ul className="mt-2 space-y-2 text-sm">
+    {investment.factors.map((f) => (
+      <li key={f.ticker} className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span className="font-semibold text-slate-900">{f.ticker}</span>
+          {f.name ? <span className="text-slate-500"> · {f.name}</span> : null}
+          <div className="text-xs text-slate-500">{f.explanation}</div>
+        </div>
 
+        <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/5 sm:mt-0">
+          <span>{f.points}</span>
+          <span className="text-slate-400">/ 40</span>
+          {f.grade ? (
+            <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200/60">
+              Grade {String(f.grade).toUpperCase()}
+            </span>
+          ) : (
+            <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200/60">
+              Unknown
+            </span>
+          )}
+        </div>
+      </li>
+    ))}
+  </ul>
+</div>
                 {lookup.unknown.length > 0 && (
                   <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
                     <div className="text-xs font-semibold text-slate-600">Unknown tickers</div>
