@@ -1,3 +1,5 @@
+import type { EdgarScoreResult } from "./edgar";
+
 type FundEntry = {
     name?: string;
     fossilGrade?: string;
@@ -6,22 +8,26 @@ type FundEntry = {
     asOf?: string;
     notes?: string;
   };
-  
+
   export type InvestmentFactor = {
     ticker: string;
     name?: string;
     grade?: string;
     points: number; // 0..40 contribution (per-ticker mapped then averaged)
     explanation: string;
-    status: "scored" | "unknown";
+    status: "scored" | "unknown" | "loading" | "error";
+    fossilExposurePct?: number;
+    filingDate?: string;
+    fossilHoldings?: Array<{ name: string; pctOfPortfolio: number }>;
   };
-  
+
   export type InvestmentScoreResult = {
     points: number; // 0..40
     maxPoints: 40;
     confidence: "low" | "medium" | "high";
     factors: InvestmentFactor[];
     unknownTickers: string[];
+    source?: "funds-json" | "sec-edgar";
   };
   
   function normalizeTicker(raw: string) {
@@ -126,5 +132,51 @@ type FundEntry = {
       confidence,
       factors,
       unknownTickers: unknown,
+      source: "funds-json" as const,
     };
+  }
+
+  /**
+   * Score a single ticker via the EDGAR API route.
+   * Returns an InvestmentFactor for use in the results page.
+   */
+  export async function scoreSingleTickerLive(ticker: string): Promise<InvestmentFactor> {
+    const t = ticker.trim().toUpperCase();
+    try {
+      const res = await fetch(`/api/score-fund?ticker=${encodeURIComponent(t)}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: "Unknown error" }));
+        return {
+          ticker: t,
+          points: 0,
+          explanation: body.error ?? `API error (${res.status})`,
+          status: "error",
+        };
+      }
+
+      const data: EdgarScoreResult = await res.json();
+      const topHoldings = data.fossilHoldings.slice(0, 5).map((h) => ({
+        name: h.name,
+        pctOfPortfolio: h.pctOfPortfolio,
+      }));
+
+      return {
+        ticker: t,
+        name: undefined, // N-PORT doesn't give us a fund name directly
+        grade: data.grade,
+        points: data.score,
+        explanation: `${data.fossilExposurePct.toFixed(2)}% fossil fuel exposure (${data.fossilHoldingsCount} of ${data.totalHoldings} holdings)`,
+        status: "scored",
+        fossilExposurePct: data.fossilExposurePct,
+        filingDate: data.filingDate,
+        fossilHoldings: topHoldings,
+      };
+    } catch (e) {
+      return {
+        ticker: t,
+        points: 0,
+        explanation: e instanceof Error ? e.message : "Network error",
+        status: "error",
+      };
+    }
   }
