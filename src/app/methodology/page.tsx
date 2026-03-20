@@ -24,14 +24,119 @@ export default function MethodologyPage() {
             Methodology
           </h1>
           <p className="text-sm text-[color:var(--gs-text-muted)]">
-            How GreenScore measures the fossil fuel exposure of your investments.
-            This page covers the data sources, scoring formula, and known
-            limitations of the current prototype.
+            How GreenScore measures the environmental impact of your banking and
+            investment choices. This page covers the data sources, scoring
+            formulas, and known limitations of the current prototype.
           </p>
         </div>
 
+        {/* ── Overall Score ── */}
+        <Section title="Overall GreenScore">
+          <p>
+            Your overall GreenScore is a composite of category subscores,
+            expressed as a percentage of available points:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              <strong>Banking</strong> &mdash; 0 to 20 points (based on fossil
+              fuel lending)
+            </li>
+            <li>
+              <strong>Investments</strong> &mdash; 0 to 40 points (based on
+              fossil fuel holdings in your funds)
+            </li>
+          </ul>
+          <p>
+            The current maximum is 60 points. Your score is displayed as{" "}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
+              (your points / 60) &times; 100
+            </code>
+            . As we add transport, home energy, and everyday choices, the
+            denominator will grow to 100.
+          </p>
+        </Section>
+
+        {/* ── Banking ── */}
+        <Section title="Banking score (0&ndash;20)">
+          <p>
+            We score your bank based on its exposure to fossil fuel lending
+            using ratings from{" "}
+            <a
+              href="https://bank.green"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Bank.Green
+            </a>
+            , a nonprofit that tracks which banks finance fossil fuel projects.
+          </p>
+
+          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-2.5">Bank.Green rating</th>
+                  <th className="px-4 py-2.5">Score</th>
+                  <th className="px-4 py-2.5">Meaning</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
+                <tr>
+                  <td className="px-4 py-2">
+                    <Grade letter="Great" color="emerald" />
+                  </td>
+                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2">Fossil Free certified &mdash; no fossil fuel lending</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">
+                    <Grade letter="Good" color="emerald" />
+                  </td>
+                  <td className="px-4 py-2 font-semibold">16</td>
+                  <td className="px-4 py-2">Minimal fossil fuel exposure, strong climate policies</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">
+                    <Grade letter="OK" color="amber" />
+                  </td>
+                  <td className="px-4 py-2 font-semibold">10</td>
+                  <td className="px-4 py-2">Some fossil fuel lending, limited transparency</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">
+                    <Grade letter="Bad" color="orange" />
+                  </td>
+                  <td className="px-4 py-2 font-semibold">4</td>
+                  <td className="px-4 py-2">Significant fossil fuel financing</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">
+                    <Grade letter="Worst" color="red" />
+                  </td>
+                  <td className="px-4 py-2 font-semibold">0</td>
+                  <td className="px-4 py-2">Among the world&apos;s largest fossil fuel financiers</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            We maintain a curated list of approximately 30 US banks matched to
+            Bank.Green ratings. If your bank is not in our list, we estimate a
+            score based on bank type:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><strong>CDFI / community bank</strong> &mdash; scored as &ldquo;Good&rdquo; (16 points)</li>
+            <li><strong>Credit union</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
+            <li><strong>Online / neobank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
+            <li><strong>Regional bank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
+            <li><strong>Large national bank</strong> &mdash; scored as &ldquo;Bad&rdquo; (4 points)</li>
+          </ul>
+        </Section>
+
         {/* ── Data Source ── */}
-        <Section title="Data source: SEC EDGAR">
+        <Section title="Investment data source: SEC EDGAR">
           <p>
             We score investment funds (mutual funds and ETFs) using publicly
             available data from the U.S. Securities and Exchange Commission.
@@ -270,10 +375,9 @@ export default function MethodologyPage() {
         <Section title="What&apos;s next">
           <ul className="list-disc space-y-1 pl-5">
             <li>Expand the fossil fuel reference list using the Global Coal Exit List and Carbon Underground 200</li>
-            <li>Add banking scoring using public climate commitment data</li>
             <li>Score transport and home energy choices from quiz answers</li>
-            <li>Compute a real overall GreenScore from all category subscores</li>
             <li>Add individual stock scoring (not just funds)</li>
+            <li>Expand Bank.Green coverage beyond the current ~30 banks</li>
           </ul>
         </Section>
 
