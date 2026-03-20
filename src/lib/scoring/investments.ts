@@ -137,6 +137,29 @@ type FundEntry = {
   }
 
   /**
+   * Transform an EdgarScoreResult API response into an InvestmentFactor.
+   * Shared by scoreSingleTickerLive and the prescore module.
+   */
+  export function edgarResultToFactor(ticker: string, data: EdgarScoreResult): InvestmentFactor {
+    const topHoldings = data.fossilHoldings.slice(0, 5).map((h) => ({
+      name: h.name,
+      pctOfPortfolio: h.pctOfPortfolio,
+    }));
+
+    return {
+      ticker: ticker.toUpperCase(),
+      name: undefined,
+      grade: data.grade,
+      points: data.score,
+      explanation: `${data.fossilExposurePct.toFixed(2)}% fossil fuel exposure (${data.fossilHoldingsCount} of ${data.totalHoldings} holdings)`,
+      status: "scored",
+      fossilExposurePct: data.fossilExposurePct,
+      filingDate: data.filingDate,
+      fossilHoldings: topHoldings,
+    };
+  }
+
+  /**
    * Score a single ticker via the EDGAR API route.
    * Returns an InvestmentFactor for use in the results page.
    */
@@ -155,22 +178,7 @@ type FundEntry = {
       }
 
       const data: EdgarScoreResult = await res.json();
-      const topHoldings = data.fossilHoldings.slice(0, 5).map((h) => ({
-        name: h.name,
-        pctOfPortfolio: h.pctOfPortfolio,
-      }));
-
-      return {
-        ticker: t,
-        name: undefined, // N-PORT doesn't give us a fund name directly
-        grade: data.grade,
-        points: data.score,
-        explanation: `${data.fossilExposurePct.toFixed(2)}% fossil fuel exposure (${data.fossilHoldingsCount} of ${data.totalHoldings} holdings)`,
-        status: "scored",
-        fossilExposurePct: data.fossilExposurePct,
-        filingDate: data.filingDate,
-        fossilHoldings: topHoldings,
-      };
+      return edgarResultToFactor(t, data);
     } catch (e) {
       return {
         ticker: t,

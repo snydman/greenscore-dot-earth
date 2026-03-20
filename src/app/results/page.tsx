@@ -2,6 +2,7 @@
 
 import { scoreSingleTickerLive, parseTickers } from "../../lib/scoring/investments";
 import type { InvestmentFactor } from "../../lib/scoring/investments";
+import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card } from "../../components/ui";
@@ -39,6 +40,23 @@ const IMPROVEMENTS = [
   },
 ];
 
+/** Poll localStorage cache for a prescore result, with timeout. */
+function pollForCachedResult(ticker: string, timeoutMs: number): Promise<InvestmentFactor | null> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const cached = getCached(ticker);
+      if (cached) {
+        clearInterval(interval);
+        resolve(cached);
+      } else if (Date.now() - start > timeoutMs) {
+        clearInterval(interval);
+        resolve(null);
+      }
+    }, 500);
+  });
+}
+
 export default function ResultsPage() {
   const [saved, setSaved] = useState<SavedPayload | null>(null);
   const [showAllInvestmentDetails, setShowAllInvestmentDetails] = useState(false);
@@ -60,28 +78,53 @@ export default function ResultsPage() {
     return parseTickers(saved?.answers.tickers ?? "");
   }, [saved]);
 
-  // Score tickers via live EDGAR API, one at a time
+  // Score tickers: check prescore cache first, then fetch uncached ones live
   const scoreAllTickers = useCallback(async (tickerList: string[]) => {
     if (tickerList.length === 0) {
       setScoringDone(true);
       return;
     }
 
-    // Initialize all tickers as loading
-    setFactors(
-      tickerList.map((t) => ({
+    // Initialize from cache where available, otherwise loading
+    const initial = tickerList.map((t) => {
+      const cached = getCached(t);
+      return cached ?? {
         ticker: t,
         points: 0,
         explanation: "Fetching SEC holdings data…",
         status: "loading" as const,
-      })),
-    );
+      };
+    });
+    setFactors(initial);
 
-    // Score each ticker sequentially (API calls SEC EDGAR which has rate limits)
-    for (let i = 0; i < tickerList.length; i++) {
-      const result = await scoreSingleTickerLive(tickerList[i]);
+    // Identify which tickers still need fetching
+    const uncached = tickerList.filter((t) => !getCached(t));
+
+    if (uncached.length === 0) {
+      setScoringDone(true);
+      return;
+    }
+
+    // Check if pre-scoring is in flight
+    const activePrescore = getActivePrescore();
+
+    for (const ticker of uncached) {
+      let result: InvestmentFactor;
+
+      // If prescore is running for this ticker, poll cache briefly before fetching
+      if (activePrescore?.includes(ticker)) {
+        result = await pollForCachedResult(ticker, 15_000) ?? await scoreSingleTickerLive(ticker);
+      } else {
+        result = await scoreSingleTickerLive(ticker);
+      }
+
+      // Cache the result for future visits
+      if (result.status === "scored") {
+        writeOne(ticker, result);
+      }
+
       setFactors((prev) =>
-        prev.map((f, idx) => (idx === i ? result : f)),
+        prev.map((f) => (f.ticker === ticker ? result : f)),
       );
     }
     setScoringDone(true);

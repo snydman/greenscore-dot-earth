@@ -2,9 +2,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, StepProgress } from "../../components/ui";
+import { parseTickers } from "../../lib/scoring/investments";
+import { startPrescore } from "../../lib/scoring/prescore";
 
 type QuizState = {
   bankName: string;
@@ -19,6 +21,7 @@ const TOTAL_STEPS = 6;
 
 export default function QuizPage() {
   const router = useRouter();
+  const prescoreRef = useRef<AbortController | null>(null);
   const [step, setStep] = useState(1);
   const [data, setData] = useState<QuizState>({
     bankName: "",
@@ -70,6 +73,12 @@ export default function QuizPage() {
       return;
     }
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+
+    // Pre-score tickers in the background when leaving step 3
+    if (step === 3 && data.knowsTickers && data.tickers.trim()) {
+      prescoreRef.current?.abort();
+      prescoreRef.current = startPrescore(parseTickers(data.tickers));
+    }
   }
 
   return (
