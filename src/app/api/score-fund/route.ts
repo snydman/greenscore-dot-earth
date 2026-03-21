@@ -16,8 +16,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result, {
       headers: {
-        // Holdings are quarterly; cache for 7 days
-        "Cache-Control": "public, max-age=604800, s-maxage=604800",
+        // Holdings are quarterly; cache in the browser for 7 days.
+        // Use "private" to prevent CDN from collapsing different ?ticker= queries
+        // into a single cached response.
+        "Cache-Control": "private, max-age=604800",
       },
     });
   } catch (e) {
