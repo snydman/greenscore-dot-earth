@@ -19,6 +19,7 @@ type BankQuizEntry = {
   bankSlug: string | null;
   bankDisplayName: string;
   bankCategory: BankCategory | null;
+  bankRating: string | null;
 };
 
 type VehicleQuizEntry = {
@@ -87,10 +88,11 @@ export default function QuizPage() {
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
-          banks: data.banks.map(({ bankSlug, bankDisplayName, bankCategory }) => ({
+          banks: data.banks.map(({ bankSlug, bankDisplayName, bankCategory, bankRating }) => ({
             bankSlug,
             bankDisplayName,
             bankCategory,
+            bankRating,
           })),
           vehicles: data.vehicles.map((v) => v.transport),
           heating: data.heating || null,
@@ -224,6 +226,7 @@ export default function QuizPage() {
                               bankSlug: bank.slug,
                               bankDisplayName: bank.name,
                               bankCategory: null,
+                              bankRating: bank.rating,
                             });
                           }}
                           onNotFound={() => setShowCategoryPicker(true)}
@@ -246,6 +249,7 @@ export default function QuizPage() {
                                   bankSlug: null,
                                   bankDisplayName: cat.label,
                                   bankCategory: cat.value,
+                                  bankRating: null,
                                 });
                               }}
                             >

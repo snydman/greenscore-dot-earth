@@ -16,6 +16,7 @@ type BankEntry = {
   bankSlug: string | null;
   bankDisplayName: string;
   bankCategory: BankCategory | null;
+  bankRating?: string | null;
 };
 
 type SavedPayload = {
@@ -113,6 +114,8 @@ export default function ResultsPage() {
       (saved?.answers.banks ?? []).map((b) => ({
         bankSlug: b.bankSlug,
         bankCategory: b.bankCategory,
+        bankRating: b.bankRating ?? null,
+        bankDisplayName: b.bankDisplayName,
       })),
     );
   }, [saved]);
