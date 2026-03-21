@@ -5,7 +5,9 @@ import type { InvestmentFactor } from "../../lib/scoring/investments";
 import { scoreBanks, type MultiBankScoreResult } from "../../lib/scoring/banking";
 import type { BankCategory } from "../../lib/data/banks";
 import { scoreVehicles, type MultiTransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
+import { scoreHeating, type HeatingScoreResult, type HeatingType } from "../../lib/scoring/heating";
 import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
+import { getRecommendations } from "../../lib/scoring/recommendations";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card } from "../../components/ui";
@@ -21,9 +23,12 @@ type SavedPayload = {
   savedAt: string;
   answers: {
     tickers: string;
-    // v4 arrays
+    // v4+ arrays
     banks?: BankEntry[];
     vehicles?: TransportQuizData[];
+    // v5 heating
+    heating?: HeatingType | null;
+    heatingState?: string | null;
     // v3 singular (for backward compat)
     bankSlug?: string | null;
     bankDisplayName?: string;
@@ -32,20 +37,12 @@ type SavedPayload = {
   };
 };
 
-const IMPROVEMENTS = [
-  {
-    title: "Move one account to a greener bank",
-    body: "Shift a checking or savings account toward a bank with lower exposure to fossil fuel lending.",
-  },
-  {
-    title: "Plan your next car as electric or hybrid",
-    body: "Even if it's a few years out, planning ahead makes incentives and charging much easier.",
-  },
-  {
-    title: "Get a quote for a heat pump",
-    body: "A high-efficiency heat pump can cut emissions and improve comfort, especially in drafty homes.",
-  },
-];
+const CATEGORY_CHIP_COLORS: Record<string, string> = {
+  banking: "bg-emerald-50 text-emerald-700",
+  transport: "bg-blue-50 text-blue-700",
+  heating: "bg-orange-50 text-orange-700",
+  investments: "bg-violet-50 text-violet-700",
+};
 
 const RATING_BADGE_COLORS: Record<string, string> = {
   great: "bg-emerald-50 text-emerald-800 ring-emerald-200/60",
@@ -125,6 +122,11 @@ export default function ResultsPage() {
     return scoreVehicles(saved?.answers.vehicles ?? []);
   }, [saved]);
 
+  // Score heating (synchronous — static data)
+  const heatingResult: HeatingScoreResult = useMemo(() => {
+    return scoreHeating(saved?.answers.heating, saved?.answers.heatingState);
+  }, [saved]);
+
   // Score tickers: check prescore cache first, then fetch uncached ones live
   const scoreAllTickers = useCallback(async (tickerList: string[]) => {
     if (tickerList.length === 0) {
@@ -202,13 +204,26 @@ export default function ResultsPage() {
     const bankPts = bankResult.points;
     const investPts = scoringDone || tickers.length === 0 ? investmentScore.points : 0;
     const transportPts = transportResult.points;
-    const totalPoints = bankPts + investPts + transportPts;
-    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints; // 20 + 40 + 20 = 80
+    const heatingPts = heatingResult.points;
+    const totalPoints = bankPts + investPts + transportPts + heatingPts;
+    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints + heatingResult.maxPoints; // 20 + 40 + 20 + 20 = 100
     const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
     return { totalPoints, maxPoints, pct };
-  }, [bankResult, investmentScore, transportResult, scoringDone, tickers.length]);
+  }, [bankResult, investmentScore, transportResult, heatingResult, scoringDone, tickers.length]);
 
   const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
+
+  const recommendations = useMemo(() => {
+    if (!saved) return [];
+    return getRecommendations({
+      bankResult,
+      transportResult,
+      heatingResult,
+      investmentScore,
+      factors,
+      answers: saved.answers,
+    });
+  }, [saved, bankResult, transportResult, heatingResult, investmentScore, factors]);
 
   return (
     <main className="gs-container py-10 sm:py-12">
@@ -220,7 +235,7 @@ export default function ResultsPage() {
         >
           ← Back to quiz
         </Link>
-        <span className="text-[0.7rem]">Banking, transport + investments scored from live data. More categories coming soon.</span>
+        <span className="text-[0.7rem]">Banking, transport, heating + investments scored from live data.</span>
       </header>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
@@ -230,7 +245,7 @@ export default function ResultsPage() {
               Your GreenScore
             </h1>
             <p className="text-xs text-[color:var(--gs-text-muted)]">
-              Based on your banking, transport, and investment choices. Home energy and everyday choices coming soon.
+              Based on your banking, transport, heating, and investment choices.
             </p>
           </div>
 
@@ -253,7 +268,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + heating ({heatingResult.points}/{heatingResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -350,6 +365,44 @@ export default function ResultsPage() {
                 {transportResult.individual.some((t) => t.source === "epa") ? "EPA fueleconomy.gov" : "User selection"}
               </span>
               {transportResult.individual.some((t) => t.source === "epa") && " — CO₂ tailpipe emissions data"}
+            </div>
+          </Card>
+
+          {/* ── Heating Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Home Heating (EIA / EPA eGRID data)
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                Heating score: {heatingResult.points} / {heatingResult.maxPoints}
+              </div>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[heatingResult.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                {heatingResult.rating}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-semibold text-slate-900">{heatingResult.heatingLabel}</div>
+                {saved?.answers.heatingState && (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                    {saved.answers.heatingState}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{heatingResult.explanation}</div>
+              {heatingResult.stateModifier && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs">
+                  <span className={heatingResult.stateModifier.adjustment > 0 ? "text-emerald-700" : "text-orange-700"}>
+                    {heatingResult.stateModifier.adjustment > 0 ? "+" : ""}{heatingResult.stateModifier.adjustment} pts
+                  </span>
+                  <span className="text-slate-400">state grid modifier</span>
+                </div>
+              )}
+            </div>
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">EIA emissions coefficients</span>
+              {heatingResult.stateModifier && " + EPA eGRID state grid data"}
             </div>
           </Card>
 
@@ -459,24 +512,45 @@ export default function ResultsPage() {
             </div>
           </Card>
 
-          {/* ── Improvements ── */}
+          {/* ── Recommendations ── */}
           <Card className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Top improvements
+              {recommendations.length > 0 ? "Your top improvements" : "Great job"}
             </p>
-            <ul className="space-y-3 text-sm">
-              {IMPROVEMENTS.map((item) => (
-                <li key={item.title} className="flex gap-3">
-                  <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-[11px] font-semibold text-emerald-700">
-                    ✓
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-[color:var(--gs-text-muted)]">{item.body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {recommendations.length === 0 ? (
+              <p className="text-sm text-[color:var(--gs-text-muted)]">
+                Your scores are strong across the board. Keep it up!
+              </p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {recommendations.map((rec) => (
+                  <li key={rec.title} className="flex gap-3">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-[11px] font-semibold text-emerald-700">
+                      {"\u2713"}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{rec.title}</p>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${CATEGORY_CHIP_COLORS[rec.category]}`}>
+                          {rec.category}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[color:var(--gs-text-muted)]">{rec.body}</p>
+                      {rec.link && (
+                        <a
+                          href={rec.link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                        >
+                          {rec.link.label} &rarr;
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </Card>
         </div>
       </div>

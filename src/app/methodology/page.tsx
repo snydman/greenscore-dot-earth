@@ -24,9 +24,10 @@ export default function MethodologyPage() {
             Methodology
           </h1>
           <p className="text-sm text-[color:var(--gs-text-muted)]">
-            How GreenScore measures the environmental impact of your banking and
-            investment choices. This page covers the data sources, scoring
-            formulas, and known limitations of the current prototype.
+            How GreenScore measures the environmental impact of your banking,
+            transport, heating, and investment choices. This page covers the
+            data sources, scoring formulas, and known limitations of the
+            current prototype.
           </p>
         </div>
 
@@ -46,17 +47,20 @@ export default function MethodologyPage() {
               vehicle CO₂ emissions)
             </li>
             <li>
+              <strong>Heating</strong> &mdash; 0 to 20 points (based on home
+              heating type and grid cleanliness)
+            </li>
+            <li>
               <strong>Investments</strong> &mdash; 0 to 40 points (based on
               fossil fuel holdings in your funds)
             </li>
           </ul>
           <p>
-            The current maximum is 80 points. Your score is displayed as{" "}
+            The maximum is 100 points. Your score is displayed as{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-              (your points / 80) &times; 100
+              (your points / 100) &times; 100
             </code>
-            . As we add home energy and everyday choices, the
-            denominator will grow to 100.
+            .
           </p>
         </Section>
 
@@ -231,6 +235,101 @@ export default function MethodologyPage() {
             vehicle, the first vehicle you add is treated as your primary and
             receives 60% of the weight. The remaining vehicles share the other
             40% equally. With a single vehicle, it receives 100% weight.
+          </p>
+        </Section>
+
+        {/* ── Heating ── */}
+        <Section title="Heating score (0&ndash;20)">
+          <p>
+            We score your home heating based on the type of heating system and,
+            for electric heating, the carbon intensity of your state&apos;s
+            electricity grid.
+          </p>
+
+          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-2.5">Heating type</th>
+                  <th className="px-4 py-2.5">Base score</th>
+                  <th className="px-4 py-2.5">Rating</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
+                <tr>
+                  <td className="px-4 py-2">Heat pump</td>
+                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Great" color="emerald" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Electric resistance</td>
+                  <td className="px-4 py-2 font-semibold">14</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Good" color="emerald" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Natural gas</td>
+                  <td className="px-4 py-2 font-semibold">10</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="OK" color="amber" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Wood / pellet</td>
+                  <td className="px-4 py-2 font-semibold">8</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="OK" color="amber" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Propane</td>
+                  <td className="px-4 py-2 font-semibold">6</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Bad" color="orange" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Heating oil</td>
+                  <td className="px-4 py-2 font-semibold">4</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Bad" color="orange" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            <strong>State grid modifier (electric heating only):</strong> If you
+            select a heat pump or electric resistance heating and provide your
+            state, we adjust the score based on how clean your state&apos;s
+            electricity grid is compared to the national average, using{" "}
+            <a
+              href="https://www.epa.gov/egrid"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              EPA eGRID 2023
+            </a>{" "}
+            data:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><strong>Very clean grid</strong> (e.g. VT, WA, OR) &mdash; +3 points</li>
+            <li><strong>Clean grid</strong> (e.g. NY, CA, CT) &mdash; +2 points</li>
+            <li><strong>Average grid</strong> &mdash; no adjustment</li>
+            <li><strong>Dirty grid</strong> (e.g. CO, OH, MI) &mdash; &minus;2 points</li>
+            <li><strong>Very dirty grid</strong> (e.g. WV, WY, KY) &mdash; &minus;3 points</li>
+          </ul>
+          <p>
+            The final score is clamped to 0&ndash;20. Heating type scores are
+            based on EIA CO₂ emissions coefficients: natural gas ~117 lbs
+            CO₂/MMBtu, heating oil ~163, propane ~139. Heat pumps earn the top
+            score because they are 3&ndash;4&times; more efficient than
+            resistance heating with zero on-site combustion emissions.
           </p>
         </Section>
 
@@ -474,9 +573,9 @@ export default function MethodologyPage() {
         <Section title="What&apos;s next">
           <ul className="list-disc space-y-1 pl-5">
             <li>Expand the fossil fuel reference list using the Global Coal Exit List and Carbon Underground 200</li>
-            <li>Score transport and home energy choices from quiz answers</li>
             <li>Add individual stock scoring (not just funds)</li>
             <li>Expand Bank.Green coverage beyond the current ~30 banks</li>
+            <li>Add everyday choices scoring (diet, shopping, travel habits)</li>
           </ul>
         </Section>
 

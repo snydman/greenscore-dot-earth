@@ -7,10 +7,12 @@ import { useRouter } from "next/navigation";
 import { Button, Card, StepProgress } from "../../components/ui";
 import BankTypeahead from "../../components/BankTypeahead";
 import { BANK_CATEGORIES, type BankCategory } from "../../lib/data/banks";
+import { STATE_LIST } from "../../lib/data/grid-emissions";
 import { parseTickers } from "../../lib/scoring/investments";
 import { startPrescore } from "../../lib/scoring/prescore";
 import VehicleSelector from "../../components/VehicleSelector";
 import type { TransportQuizData } from "../../lib/scoring/transport";
+import type { HeatingType } from "../../lib/scoring/heating";
 
 type BankQuizEntry = {
   id: string;
@@ -29,11 +31,11 @@ type QuizState = {
   knowsTickers: boolean | null;
   tickers: string;
   vehicles: VehicleQuizEntry[];
-  heating: string;
-  cooking: string;
+  heating: HeatingType | "";
+  heatingState: string;
 };
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 export default function QuizPage() {
   const router = useRouter();
@@ -50,7 +52,7 @@ export default function QuizPage() {
     tickers: "",
     vehicles: [],
     heating: "",
-    cooking: "",
+    heatingState: "",
   });
 
   const isFirst = step === 1;
@@ -69,8 +71,6 @@ export default function QuizPage() {
         return data.vehicles.length > 0;
       case 5:
         return !!data.heating;
-      case 6:
-        return !!data.cooking;
       default:
         return false;
     }
@@ -83,7 +83,7 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 4,
+        version: 5,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
@@ -93,6 +93,8 @@ export default function QuizPage() {
             bankCategory,
           })),
           vehicles: data.vehicles.map((v) => v.transport),
+          heating: data.heating || null,
+          heatingState: data.heatingState || null,
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -166,8 +168,7 @@ export default function QuizPage() {
               {step === 2 && "Do you know your fund tickers?"}
               {step === 3 && "List any tickers you know"}
               {step === 4 && "Your vehicles"}
-              {step === 5 && "How is your home heated?"}
-              {step === 6 && "How do you mostly cook at home?"}
+              {step === 5 && "Your home heating"}
             </h1>
             <p className="text-sm text-slate-600">
               Directional answers are fine — this is a snapshot, not a full diagnostic.
@@ -435,38 +436,51 @@ export default function QuizPage() {
             )}
 
             {step === 5 && (
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">How is your home mostly heated?</label>
-                <select
-                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                  value={data.heating}
-                  onChange={(e) => setData((prev) => ({ ...prev, heating: e.target.value }))}
-                >
-                  <option value="">Select one</option>
-                  <option value="heat_pump">Heat pump</option>
-                  <option value="gas">Gas furnace / boiler</option>
-                  <option value="oil">Oil</option>
-                  <option value="propane">Propane</option>
-                  <option value="electric_resistance">Electric resistance</option>
-                  <option value="not_sure">Not sure</option>
-                </select>
-              </div>
-            )}
+              <div className="space-y-4 text-left">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">How is your home mostly heated?</label>
+                  <select
+                    className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                    value={data.heating}
+                    onChange={(e) => setData((prev) => ({ ...prev, heating: e.target.value as HeatingType | "" }))}
+                  >
+                    <option value="">Select one</option>
+                    <option value="heat_pump">Heat pump</option>
+                    <option value="gas">Gas furnace / boiler</option>
+                    <option value="oil">Oil</option>
+                    <option value="propane">Propane</option>
+                    <option value="electric_resistance">Electric resistance</option>
+                    <option value="wood">Wood / pellet stove</option>
+                    <option value="not_sure">Not sure</option>
+                  </select>
+                </div>
 
-            {step === 6 && (
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">And how do you mostly cook at home?</label>
-                <select
-                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                  value={data.cooking}
-                  onChange={(e) => setData((prev) => ({ ...prev, cooking: e.target.value }))}
-                >
-                  <option value="">Select one</option>
-                  <option value="induction">Induction</option>
-                  <option value="electric">Electric</option>
-                  <option value="gas">Gas</option>
-                  <option value="not_sure">Not sure / mixed</option>
-                </select>
+                {(data.heating === "heat_pump" || data.heating === "electric_resistance") && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      What state do you live in? <span className="font-normal text-slate-500">(optional)</span>
+                    </label>
+                    <p className="text-xs text-slate-500">
+                      Electric heating is only as clean as your grid. We use EPA eGRID data to adjust your score.
+                    </p>
+                    <select
+                      className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                      value={data.heatingState}
+                      onChange={(e) => setData((prev) => ({ ...prev, heatingState: e.target.value }))}
+                    >
+                      <option value="">Skip — use national average</option>
+                      {STATE_LIST.map((s) => (
+                        <option key={s.code} value={s.code}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <p className="text-xs text-slate-500">
+                  Heating accounts for the largest share of home energy use and emissions.
+                </p>
               </div>
             )}
           </div>
