@@ -12,13 +12,23 @@ import { startPrescore } from "../../lib/scoring/prescore";
 import VehicleSelector from "../../components/VehicleSelector";
 import type { TransportQuizData } from "../../lib/scoring/transport";
 
-type QuizState = {
+type BankQuizEntry = {
+  id: string;
   bankSlug: string | null;
   bankDisplayName: string;
   bankCategory: BankCategory | null;
+};
+
+type VehicleQuizEntry = {
+  id: string;
+  transport: TransportQuizData;
+};
+
+type QuizState = {
+  banks: BankQuizEntry[];
   knowsTickers: boolean | null;
   tickers: string;
-  transport: TransportQuizData | null;
+  vehicles: VehicleQuizEntry[];
   heating: string;
   cooking: string;
 };
@@ -31,13 +41,14 @@ export default function QuizPage() {
   const [step, setStep] = useState(1);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
+  const [addingBank, setAddingBank] = useState(true);
+  const [addingVehicle, setAddingVehicle] = useState(true);
+  const [vehicleEditKey, setVehicleEditKey] = useState(0);
   const [data, setData] = useState<QuizState>({
-    bankSlug: null,
-    bankDisplayName: "",
-    bankCategory: null,
+    banks: [],
     knowsTickers: null,
     tickers: "",
-    transport: null,
+    vehicles: [],
     heating: "",
     cooking: "",
   });
@@ -48,14 +59,14 @@ export default function QuizPage() {
   const canGoNext = useMemo(() => {
     switch (step) {
       case 1:
-        return data.bankSlug !== null || data.bankCategory !== null;
+        return data.banks.length > 0;
       case 2:
         return data.knowsTickers !== null;
       case 3:
         if (data.knowsTickers) return data.tickers.trim().length > 0;
         return true;
       case 4:
-        return data.transport !== null;
+        return data.vehicles.length > 0;
       case 5:
         return !!data.heating;
       case 6:
@@ -72,14 +83,16 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 3,
+        version: 4,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
-          bankSlug: data.bankSlug,
-          bankDisplayName: data.bankDisplayName,
-          bankCategory: data.bankCategory,
-          transport: data.transport,
+          banks: data.banks.map(({ bankSlug, bankDisplayName, bankCategory }) => ({
+            bankSlug,
+            bankDisplayName,
+            bankCategory,
+          })),
+          vehicles: data.vehicles.map((v) => v.transport),
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -93,6 +106,39 @@ export default function QuizPage() {
       prescoreRef.current?.abort();
       prescoreRef.current = startPrescore(parseTickers(data.tickers));
     }
+  }
+
+  function addBank(entry: Omit<BankQuizEntry, "id">) {
+    setData((prev) => ({
+      ...prev,
+      banks: [...prev.banks, { ...entry, id: crypto.randomUUID() }],
+    }));
+    setBankSearch("");
+    setShowCategoryPicker(false);
+    setAddingBank(false);
+  }
+
+  function removeBank(id: string) {
+    setData((prev) => ({
+      ...prev,
+      banks: prev.banks.filter((b) => b.id !== id),
+    }));
+  }
+
+  function addVehicle(transport: TransportQuizData) {
+    setData((prev) => ({
+      ...prev,
+      vehicles: [...prev.vehicles, { id: crypto.randomUUID(), transport }],
+    }));
+    setAddingVehicle(false);
+    setVehicleEditKey((k) => k + 1);
+  }
+
+  function removeVehicle(id: string) {
+    setData((prev) => ({
+      ...prev,
+      vehicles: prev.vehicles.filter((v) => v.id !== id),
+    }));
   }
 
   return (
@@ -116,10 +162,10 @@ export default function QuizPage() {
 
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {step === 1 && "Your day-to-day banking"}
+              {step === 1 && "Your banking"}
               {step === 2 && "Do you know your fund tickers?"}
               {step === 3 && "List any tickers you know"}
-              {step === 4 && "Your primary vehicle"}
+              {step === 4 && "Your vehicles"}
               {step === 5 && "How is your home heated?"}
               {step === 6 && "How do you mostly cook at home?"}
             </h1>
@@ -131,69 +177,113 @@ export default function QuizPage() {
           <div className="space-y-4">
             {step === 1 && (
               <div className="space-y-3 text-left">
-                <label className="text-sm font-medium">What&apos;s the main bank you use?</label>
+                {/* List of added banks */}
+                {data.banks.length > 0 && (
+                  <div className="space-y-2">
+                    {data.banks.map((bank, idx) => (
+                      <div
+                        key={bank.id}
+                        className="flex items-center justify-between rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-2.5 text-sm"
+                      >
+                        <div>
+                          <span className="font-semibold text-slate-900">{bank.bankDisplayName}</span>
+                          {idx === 0 && data.banks.length > 1 && (
+                            <span className="ml-2 text-xs text-emerald-700">(primary — 60% weight)</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          className="ml-3 text-slate-400 hover:text-red-500"
+                          onClick={() => removeBank(bank.id)}
+                          aria-label={`Remove ${bank.bankDisplayName}`}
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                {!showCategoryPicker ? (
+                {/* Bank input (typeahead or category picker) */}
+                {addingBank ? (
                   <>
-                    <BankTypeahead
-                      value={bankSearch}
-                      onChange={(text) => {
-                        setBankSearch(text);
-                        // Clear selection if user edits text after selecting
-                        if (data.bankSlug) {
-                          setData((prev) => ({ ...prev, bankSlug: null, bankDisplayName: "" }));
-                        }
-                      }}
-                      onSelect={(bank) => {
-                        setBankSearch(bank.name);
-                        setData((prev) => ({
-                          ...prev,
-                          bankSlug: bank.slug,
-                          bankDisplayName: bank.name,
-                          bankCategory: null,
-                        }));
-                      }}
-                      onNotFound={() => setShowCategoryPicker(true)}
-                    />
-                    {data.bankSlug && (
-                      <p className="text-xs text-emerald-700">
-                        Selected: <span className="font-semibold">{data.bankDisplayName}</span>
-                      </p>
+                    <label className="text-sm font-medium">
+                      {data.banks.length === 0
+                        ? "What\u2019s the main bank you use?"
+                        : "Add another bank"}
+                    </label>
+
+                    {!showCategoryPicker ? (
+                      <>
+                        <BankTypeahead
+                          value={bankSearch}
+                          onChange={(text) => setBankSearch(text)}
+                          onSelect={(bank) => {
+                            addBank({
+                              bankSlug: bank.slug,
+                              bankDisplayName: bank.name,
+                              bankCategory: null,
+                            });
+                          }}
+                          onNotFound={() => setShowCategoryPicker(true)}
+                        />
+                      </>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600">
+                          What type of bank do you use?
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {BANK_CATEGORIES.map((cat) => (
+                            <Button
+                              key={cat.value}
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => {
+                                addBank({
+                                  bankSlug: null,
+                                  bankDisplayName: cat.label,
+                                  bankCategory: cat.value,
+                                });
+                              }}
+                            >
+                              {cat.label}
+                            </Button>
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                          onClick={() => setShowCategoryPicker(false)}
+                        >
+                          &larr; Back to search
+                        </button>
+                      </div>
+                    )}
+
+                    {data.banks.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                        onClick={() => {
+                          setAddingBank(false);
+                          setBankSearch("");
+                          setShowCategoryPicker(false);
+                        }}
+                      >
+                        Cancel
+                      </button>
                     )}
                   </>
                 ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-slate-600">
-                      What type of bank do you use?
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {BANK_CATEGORIES.map((cat) => (
-                        <Button
-                          key={cat.value}
-                          type="button"
-                          variant={data.bankCategory === cat.value ? "primary" : "secondary"}
-                          size="sm"
-                          onClick={() =>
-                            setData((prev) => ({
-                              ...prev,
-                              bankSlug: null,
-                              bankDisplayName: cat.label,
-                              bankCategory: cat.value,
-                            }))
-                          }
-                        >
-                          {cat.label}
-                        </Button>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
-                      onClick={() => setShowCategoryPicker(false)}
-                    >
-                      ← Back to search
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                    onClick={() => setAddingBank(true)}
+                  >
+                    + Add another bank
+                  </button>
                 )}
 
                 <p className="text-xs text-slate-500">
@@ -262,10 +352,86 @@ export default function QuizPage() {
             )}
 
             {step === 4 && (
-              <VehicleSelector
-                value={data.transport}
-                onChange={(t) => setData((prev) => ({ ...prev, transport: t }))}
-              />
+              <div className="space-y-3 text-left">
+                {/* List of added vehicles */}
+                {data.vehicles.length > 0 && (
+                  <div className="space-y-2">
+                    {data.vehicles.map((v, idx) => {
+                      const t = v.transport;
+                      const label =
+                        t.type === "vehicle"
+                          ? `${t.year} ${t.make} ${t.model}`
+                          : t.type === "none"
+                            ? "No car"
+                            : "Not sure";
+                      const detail =
+                        t.type === "vehicle"
+                          ? `${t.co2Gpm} g CO\u2082/mile \u00b7 ${t.combinedMpg} MPG \u00b7 ${t.fuelType}`
+                          : null;
+                      return (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-4 py-2.5 text-sm"
+                        >
+                          <div>
+                            <span className="font-semibold text-slate-900">{label}</span>
+                            {idx === 0 && data.vehicles.length > 1 && (
+                              <span className="ml-2 text-xs text-emerald-700">(primary — 60% weight)</span>
+                            )}
+                            {detail && (
+                              <span className="ml-2 text-xs text-slate-500">{detail}</span>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="ml-3 text-slate-400 hover:text-red-500"
+                            onClick={() => removeVehicle(v.id)}
+                            aria-label={`Remove ${label}`}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Vehicle input */}
+                {addingVehicle ? (
+                  <>
+                    <VehicleSelector
+                      key={vehicleEditKey}
+                      value={null}
+                      onChange={(t) => {
+                        if (t) addVehicle(t);
+                      }}
+                    />
+                    {data.vehicles.length > 0 && (
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                        onClick={() => setAddingVehicle(false)}
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="text-sm font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                    onClick={() => setAddingVehicle(true)}
+                  >
+                    + Add another vehicle
+                  </button>
+                )}
+
+                {!addingVehicle && data.vehicles.length > 0 && (
+                  <p className="text-xs text-slate-500">
+                    EPA fuel economy data helps us estimate your transport emissions.
+                  </p>
+                )}
+              </div>
             )}
 
             {step === 5 && (
