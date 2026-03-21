@@ -42,16 +42,20 @@ export default function MethodologyPage() {
               fuel lending)
             </li>
             <li>
+              <strong>Transport</strong> &mdash; 0 to 20 points (based on
+              vehicle CO₂ emissions)
+            </li>
+            <li>
               <strong>Investments</strong> &mdash; 0 to 40 points (based on
               fossil fuel holdings in your funds)
             </li>
           </ul>
           <p>
-            The current maximum is 60 points. Your score is displayed as{" "}
+            The current maximum is 80 points. Your score is displayed as{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-              (your points / 60) &times; 100
+              (your points / 80) &times; 100
             </code>
-            . As we add transport, home energy, and everyday choices, the
+            . As we add home energy and everyday choices, the
             denominator will grow to 100.
           </p>
         </Section>
@@ -132,6 +136,89 @@ export default function MethodologyPage() {
             <li><strong>Online / neobank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
             <li><strong>Regional bank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
             <li><strong>Large national bank</strong> &mdash; scored as &ldquo;Bad&rdquo; (4 points)</li>
+          </ul>
+        </Section>
+
+        {/* ── Transport ── */}
+        <Section title="Transport score (0&ndash;20)">
+          <p>
+            We score your primary vehicle based on its tailpipe CO₂ emissions
+            using data from the{" "}
+            <a
+              href="https://fueleconomy.gov"
+              className="font-semibold text-emerald-800 underline-offset-2 hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              EPA fueleconomy.gov
+            </a>{" "}
+            database. Every vehicle sold in the US has official EPA emissions
+            data including CO₂ grams per mile and combined MPG.
+          </p>
+
+          <p>
+            The score is calculated as:{" "}
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
+              score = 20 &times; (1 &minus; CO₂ g/mile / 500)
+            </code>
+            , clamped to 0&ndash;20.
+          </p>
+
+          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-2.5">CO₂ g/mile</th>
+                  <th className="px-4 py-2.5">Score</th>
+                  <th className="px-4 py-2.5">Rating</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
+                <tr>
+                  <td className="px-4 py-2">0</td>
+                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Great" color="emerald" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">1 &ndash; 150</td>
+                  <td className="px-4 py-2 font-semibold">14 &ndash; 20</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Good" color="emerald" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">151 &ndash; 300</td>
+                  <td className="px-4 py-2 font-semibold">8 &ndash; 14</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="OK" color="amber" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">301 &ndash; 450</td>
+                  <td className="px-4 py-2 font-semibold">2 &ndash; 8</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Bad" color="orange" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">451+</td>
+                  <td className="px-4 py-2 font-semibold">0 &ndash; 2</td>
+                  <td className="px-4 py-2">
+                    <Grade letter="Worst" color="red" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            Special cases:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li><strong>No car</strong> &mdash; 20/20 (zero transport emissions)</li>
+            <li><strong>Not sure / skipped</strong> &mdash; 10/20 (scored neutrally)</li>
           </ul>
         </Section>
 

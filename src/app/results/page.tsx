@@ -4,6 +4,7 @@ import { scoreSingleTickerLive, parseTickers } from "../../lib/scoring/investmen
 import type { InvestmentFactor } from "../../lib/scoring/investments";
 import { scoreBanking, type BankScoreResult } from "../../lib/scoring/banking";
 import type { BankCategory } from "../../lib/data/banks";
+import { scoreTransport, type TransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
 import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -17,6 +18,7 @@ type SavedPayload = {
     bankSlug?: string | null;
     bankDisplayName?: string;
     bankCategory?: string | null;
+    transport?: TransportQuizData | null;
   };
 };
 
@@ -87,6 +89,11 @@ export default function ResultsPage() {
       (saved?.answers.bankSlug ?? null) as string | null,
       (saved?.answers.bankCategory ?? null) as BankCategory | null,
     );
+  }, [saved]);
+
+  // Score transport (synchronous — data fetched during quiz)
+  const transportScore: TransportScoreResult = useMemo(() => {
+    return scoreTransport(saved?.answers.transport ?? null);
   }, [saved]);
 
   // Score tickers: check prescore cache first, then fetch uncached ones live
@@ -165,11 +172,12 @@ export default function ResultsPage() {
   const overallScore = useMemo(() => {
     const bankPts = bankScore.points;
     const investPts = scoringDone || tickers.length === 0 ? investmentScore.points : 0;
-    const totalPoints = bankPts + investPts;
-    const maxPoints = bankScore.maxPoints + investmentScore.maxPoints; // 20 + 40 = 60
+    const transportPts = transportScore.points;
+    const totalPoints = bankPts + investPts + transportPts;
+    const maxPoints = bankScore.maxPoints + investmentScore.maxPoints + transportScore.maxPoints; // 20 + 40 + 20 = 80
     const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
     return { totalPoints, maxPoints, pct };
-  }, [bankScore, investmentScore, scoringDone, tickers.length]);
+  }, [bankScore, investmentScore, transportScore, scoringDone, tickers.length]);
 
   const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
 
@@ -183,7 +191,7 @@ export default function ResultsPage() {
         >
           ← Back to quiz
         </Link>
-        <span className="text-[0.7rem]">Banking + investments scored from live data. Other categories coming soon.</span>
+        <span className="text-[0.7rem]">Banking, transport + investments scored from live data. More categories coming soon.</span>
       </header>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
@@ -193,7 +201,7 @@ export default function ResultsPage() {
               Your GreenScore
             </h1>
             <p className="text-xs text-[color:var(--gs-text-muted)]">
-              Based on your banking and investment choices. Transport, home energy, and everyday choices coming soon.
+              Based on your banking, transport, and investment choices. Home energy and everyday choices coming soon.
             </p>
           </div>
 
@@ -216,7 +224,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankScore.points}/{bankScore.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankScore.points}/{bankScore.maxPoints}) + transport ({transportScore.points}/{transportScore.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -256,6 +264,31 @@ export default function ResultsPage() {
             <div className="text-xs text-slate-500">
               Source: <span className="font-semibold">Bank.Green</span> — fossil fuel lending data
               {bankScore.source === "category-fallback" && " (estimated from bank type)"}
+            </div>
+          </Card>
+
+          {/* ── Transport Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Transport (EPA data)
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                Transport score: {transportScore.points} / {transportScore.maxPoints}
+              </div>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[transportScore.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                {transportScore.rating}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+              <div className="text-sm">
+                <span className="font-semibold text-slate-900">{transportScore.vehicleLabel}</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{transportScore.explanation}</div>
+            </div>
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">{transportScore.source === "epa" ? "EPA fueleconomy.gov" : "User selection"}</span>
+              {transportScore.source === "epa" && " — CO₂ tailpipe emissions data"}
             </div>
           </Card>
 

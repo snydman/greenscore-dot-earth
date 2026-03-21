@@ -9,6 +9,8 @@ import BankTypeahead from "../../components/BankTypeahead";
 import { BANK_CATEGORIES, type BankCategory } from "../../lib/data/banks";
 import { parseTickers } from "../../lib/scoring/investments";
 import { startPrescore } from "../../lib/scoring/prescore";
+import VehicleSelector from "../../components/VehicleSelector";
+import type { TransportQuizData } from "../../lib/scoring/transport";
 
 type QuizState = {
   bankSlug: string | null;
@@ -16,7 +18,7 @@ type QuizState = {
   bankCategory: BankCategory | null;
   knowsTickers: boolean | null;
   tickers: string;
-  transport: string;
+  transport: TransportQuizData | null;
   heating: string;
   cooking: string;
 };
@@ -35,7 +37,7 @@ export default function QuizPage() {
     bankCategory: null,
     knowsTickers: null,
     tickers: "",
-    transport: "",
+    transport: null,
     heating: "",
     cooking: "",
   });
@@ -53,7 +55,7 @@ export default function QuizPage() {
         if (data.knowsTickers) return data.tickers.trim().length > 0;
         return true;
       case 4:
-        return !!data.transport;
+        return data.transport !== null;
       case 5:
         return !!data.heating;
       case 6:
@@ -70,13 +72,14 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 2,
+        version: 3,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
           bankSlug: data.bankSlug,
           bankDisplayName: data.bankDisplayName,
           bankCategory: data.bankCategory,
+          transport: data.transport,
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -116,7 +119,7 @@ export default function QuizPage() {
               {step === 1 && "Your day-to-day banking"}
               {step === 2 && "Do you know your fund tickers?"}
               {step === 3 && "List any tickers you know"}
-              {step === 4 && "How do you usually get around?"}
+              {step === 4 && "Your primary vehicle"}
               {step === 5 && "How is your home heated?"}
               {step === 6 && "How do you mostly cook at home?"}
             </h1>
@@ -259,22 +262,10 @@ export default function QuizPage() {
             )}
 
             {step === 4 && (
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">How do you primarily get around?</label>
-                <select
-                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                  value={data.transport}
-                  onChange={(e) => setData((prev) => ({ ...prev, transport: e.target.value }))}
-                >
-                  <option value="">Select one</option>
-                  <option value="gas">Gas</option>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="phev">Plug-in hybrid (PHEV)</option>
-                  <option value="ev">Fully electric (EV)</option>
-                  <option value="none">None / mostly car-free</option>
-                  <option value="not_sure">Not sure</option>
-                </select>
-              </div>
+              <VehicleSelector
+                value={data.transport}
+                onChange={(t) => setData((prev) => ({ ...prev, transport: t }))}
+              />
             )}
 
             {step === 5 && (
