@@ -30,6 +30,35 @@ const RATING_LABELS: Record<BankGreenRating, string> = {
   worst: "Among the world's largest fossil fuel financiers",
 };
 
+export type MultiBankScoreResult = {
+  points: number;
+  maxPoints: 20;
+  individual: BankScoreResult[];
+};
+
+function weightedAverage(scores: number[]): number {
+  if (scores.length === 0) return 10;
+  if (scores.length === 1) return scores[0];
+  const PRIMARY_WEIGHT = 0.6;
+  const secondaryWeight = 0.4 / (scores.length - 1);
+  let total = scores[0] * PRIMARY_WEIGHT;
+  for (let i = 1; i < scores.length; i++) {
+    total += scores[i] * secondaryWeight;
+  }
+  return Math.round(total);
+}
+
+export function scoreBanks(
+  banks: Array<{ bankSlug: string | null; bankCategory: BankCategory | null }>,
+): MultiBankScoreResult {
+  if (banks.length === 0) {
+    return { points: 10, maxPoints: 20, individual: [] };
+  }
+  const individual = banks.map((b) => scoreBanking(b.bankSlug, b.bankCategory));
+  const points = weightedAverage(individual.map((r) => r.points));
+  return { points, maxPoints: 20, individual };
+}
+
 export function scoreBanking(
   bankSlug: string | null,
   category: BankCategory | null,

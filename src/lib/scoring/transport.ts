@@ -45,6 +45,35 @@ function co2GpmToRating(gpm: number): TransportRating {
   return "worst";
 }
 
+export type MultiTransportScoreResult = {
+  points: number;
+  maxPoints: 20;
+  individual: TransportScoreResult[];
+};
+
+function weightedAverage(scores: number[]): number {
+  if (scores.length === 0) return 10;
+  if (scores.length === 1) return scores[0];
+  const PRIMARY_WEIGHT = 0.6;
+  const secondaryWeight = 0.4 / (scores.length - 1);
+  let total = scores[0] * PRIMARY_WEIGHT;
+  for (let i = 1; i < scores.length; i++) {
+    total += scores[i] * secondaryWeight;
+  }
+  return Math.round(total);
+}
+
+export function scoreVehicles(
+  vehicles: TransportQuizData[],
+): MultiTransportScoreResult {
+  if (vehicles.length === 0) {
+    return { points: 10, maxPoints: 20, individual: [] };
+  }
+  const individual = vehicles.map((v) => scoreTransport(v));
+  const points = weightedAverage(individual.map((r) => r.points));
+  return { points, maxPoints: 20, individual };
+}
+
 export function scoreTransport(
   data: TransportQuizData | null | undefined,
 ): TransportScoreResult {

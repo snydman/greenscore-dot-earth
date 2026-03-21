@@ -2,19 +2,29 @@
 
 import { scoreSingleTickerLive, parseTickers } from "../../lib/scoring/investments";
 import type { InvestmentFactor } from "../../lib/scoring/investments";
-import { scoreBanking, type BankScoreResult } from "../../lib/scoring/banking";
+import { scoreBanks, type MultiBankScoreResult } from "../../lib/scoring/banking";
 import type { BankCategory } from "../../lib/data/banks";
-import { scoreTransport, type TransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
+import { scoreVehicles, type MultiTransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
 import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card } from "../../components/ui";
+
+type BankEntry = {
+  bankSlug: string | null;
+  bankDisplayName: string;
+  bankCategory: BankCategory | null;
+};
 
 type SavedPayload = {
   version: number;
   savedAt: string;
   answers: {
     tickers: string;
+    // v4 arrays
+    banks?: BankEntry[];
+    vehicles?: TransportQuizData[];
+    // v3 singular (for backward compat)
     bankSlug?: string | null;
     bankDisplayName?: string;
     bankCategory?: string | null;
@@ -73,6 +83,23 @@ export default function ResultsPage() {
       const raw = localStorage.getItem("greenscore.answers.v1");
       if (!raw) return;
       const parsed = JSON.parse(raw) as SavedPayload;
+
+      // Migrate v3 singular fields to v4 arrays
+      if (!parsed.answers.banks) {
+        parsed.answers.banks = parsed.answers.bankSlug || parsed.answers.bankCategory
+          ? [{
+              bankSlug: (parsed.answers.bankSlug ?? null) as string | null,
+              bankDisplayName: parsed.answers.bankDisplayName ?? "",
+              bankCategory: (parsed.answers.bankCategory ?? null) as BankCategory | null,
+            }]
+          : [];
+      }
+      if (!parsed.answers.vehicles) {
+        parsed.answers.vehicles = parsed.answers.transport
+          ? [parsed.answers.transport]
+          : [];
+      }
+
       setSaved(parsed);
     } catch {
       // ignore
@@ -84,16 +111,18 @@ export default function ResultsPage() {
   }, [saved]);
 
   // Score banking (synchronous — static data)
-  const bankScore: BankScoreResult = useMemo(() => {
-    return scoreBanking(
-      (saved?.answers.bankSlug ?? null) as string | null,
-      (saved?.answers.bankCategory ?? null) as BankCategory | null,
+  const bankResult: MultiBankScoreResult = useMemo(() => {
+    return scoreBanks(
+      (saved?.answers.banks ?? []).map((b) => ({
+        bankSlug: b.bankSlug,
+        bankCategory: b.bankCategory,
+      })),
     );
   }, [saved]);
 
   // Score transport (synchronous — data fetched during quiz)
-  const transportScore: TransportScoreResult = useMemo(() => {
-    return scoreTransport(saved?.answers.transport ?? null);
+  const transportResult: MultiTransportScoreResult = useMemo(() => {
+    return scoreVehicles(saved?.answers.vehicles ?? []);
   }, [saved]);
 
   // Score tickers: check prescore cache first, then fetch uncached ones live
@@ -170,14 +199,14 @@ export default function ResultsPage() {
 
   // Compute live overall GreenScore from available subscores
   const overallScore = useMemo(() => {
-    const bankPts = bankScore.points;
+    const bankPts = bankResult.points;
     const investPts = scoringDone || tickers.length === 0 ? investmentScore.points : 0;
-    const transportPts = transportScore.points;
+    const transportPts = transportResult.points;
     const totalPoints = bankPts + investPts + transportPts;
-    const maxPoints = bankScore.maxPoints + investmentScore.maxPoints + transportScore.maxPoints; // 20 + 40 + 20 = 80
+    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints; // 20 + 40 + 20 = 80
     const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
     return { totalPoints, maxPoints, pct };
-  }, [bankScore, investmentScore, transportScore, scoringDone, tickers.length]);
+  }, [bankResult, investmentScore, transportResult, scoringDone, tickers.length]);
 
   const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
 
@@ -224,7 +253,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankScore.points}/{bankScore.maxPoints}) + transport ({transportScore.points}/{transportScore.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -249,21 +278,36 @@ export default function ResultsPage() {
             </p>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
-                Banking score: {bankScore.points} / {bankScore.maxPoints}
+                Banking score: {bankResult.points} / {bankResult.maxPoints}
               </div>
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[bankScore.rating] ?? RATING_BADGE_COLORS.ok}`}>
-                {bankScore.rating}
-              </span>
             </div>
-            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
-              <div className="text-sm">
-                <span className="font-semibold text-slate-900">{bankScore.bankName}</span>
+            {bankResult.individual.length === 0 ? (
+              <p className="text-sm text-[color:var(--gs-text-muted)]">
+                No banks entered — scored neutrally.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {bankResult.individual.map((b, idx) => (
+                  <div key={idx} className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm">
+                        <span className="font-semibold text-slate-900">{b.bankName}</span>
+                        {idx === 0 && bankResult.individual.length > 1 && (
+                          <span className="ml-2 text-xs text-emerald-700">(primary)</span>
+                        )}
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[b.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                        {b.rating}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">{b.explanation}</div>
+                  </div>
+                ))}
               </div>
-              <div className="mt-1 text-xs text-slate-500">{bankScore.explanation}</div>
-            </div>
+            )}
             <div className="text-xs text-slate-500">
               Source: <span className="font-semibold">Bank.Green</span> — fossil fuel lending data
-              {bankScore.source === "category-fallback" && " (estimated from bank type)"}
+              {bankResult.individual.some((b) => b.source === "category-fallback") && " (some estimated from bank type)"}
             </div>
           </Card>
 
@@ -274,21 +318,38 @@ export default function ResultsPage() {
             </p>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
-                Transport score: {transportScore.points} / {transportScore.maxPoints}
+                Transport score: {transportResult.points} / {transportResult.maxPoints}
               </div>
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[transportScore.rating] ?? RATING_BADGE_COLORS.ok}`}>
-                {transportScore.rating}
-              </span>
             </div>
-            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
-              <div className="text-sm">
-                <span className="font-semibold text-slate-900">{transportScore.vehicleLabel}</span>
+            {transportResult.individual.length === 0 ? (
+              <p className="text-sm text-[color:var(--gs-text-muted)]">
+                No vehicles entered — scored neutrally.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {transportResult.individual.map((t, idx) => (
+                  <div key={idx} className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm">
+                        <span className="font-semibold text-slate-900">{t.vehicleLabel}</span>
+                        {idx === 0 && transportResult.individual.length > 1 && (
+                          <span className="ml-2 text-xs text-emerald-700">(primary)</span>
+                        )}
+                      </div>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[t.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                        {t.rating}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">{t.explanation}</div>
+                  </div>
+                ))}
               </div>
-              <div className="mt-1 text-xs text-slate-500">{transportScore.explanation}</div>
-            </div>
+            )}
             <div className="text-xs text-slate-500">
-              Source: <span className="font-semibold">{transportScore.source === "epa" ? "EPA fueleconomy.gov" : "User selection"}</span>
-              {transportScore.source === "epa" && " — CO₂ tailpipe emissions data"}
+              Source: <span className="font-semibold">
+                {transportResult.individual.some((t) => t.source === "epa") ? "EPA fueleconomy.gov" : "User selection"}
+              </span>
+              {transportResult.individual.some((t) => t.source === "epa") && " — CO₂ tailpipe emissions data"}
             </div>
           </Card>
 

@@ -137,6 +137,12 @@ export default function MethodologyPage() {
             <li><strong>Regional bank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
             <li><strong>Large national bank</strong> &mdash; scored as &ldquo;Bad&rdquo; (4 points)</li>
           </ul>
+          <p>
+            <strong>Multiple banks:</strong> If you enter more than one bank,
+            the first bank you add is treated as your primary and receives 60%
+            of the weight. The remaining banks share the other 40% equally.
+            With a single bank, it receives 100% weight.
+          </p>
         </Section>
 
         {/* ── Transport ── */}
@@ -220,6 +226,12 @@ export default function MethodologyPage() {
             <li><strong>No car</strong> &mdash; 20/20 (zero transport emissions)</li>
             <li><strong>Not sure / skipped</strong> &mdash; 10/20 (scored neutrally)</li>
           </ul>
+          <p>
+            <strong>Multiple vehicles:</strong> If you enter more than one
+            vehicle, the first vehicle you add is treated as your primary and
+            receives 60% of the weight. The remaining vehicles share the other
+            40% equally. With a single vehicle, it receives 100% weight.
+          </p>
         </Section>
 
         {/* ── Data Source ── */}
