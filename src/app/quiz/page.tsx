@@ -2,15 +2,23 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRef, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, StepProgress } from "../../components/ui";
+import BankTypeahead from "../../components/BankTypeahead";
+import { BANK_CATEGORIES, type BankCategory } from "../../lib/data/banks";
+import { parseTickers } from "../../lib/scoring/investments";
+import { startPrescore } from "../../lib/scoring/prescore";
+import VehicleSelector from "../../components/VehicleSelector";
+import type { TransportQuizData } from "../../lib/scoring/transport";
 
 type QuizState = {
-  bankName: string;
+  bankSlug: string | null;
+  bankDisplayName: string;
+  bankCategory: BankCategory | null;
   knowsTickers: boolean | null;
   tickers: string;
-  transport: string;
+  transport: TransportQuizData | null;
   heating: string;
   cooking: string;
 };
@@ -19,12 +27,17 @@ const TOTAL_STEPS = 6;
 
 export default function QuizPage() {
   const router = useRouter();
+  const prescoreRef = useRef<AbortController | null>(null);
   const [step, setStep] = useState(1);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [bankSearch, setBankSearch] = useState("");
   const [data, setData] = useState<QuizState>({
-    bankName: "",
+    bankSlug: null,
+    bankDisplayName: "",
+    bankCategory: null,
     knowsTickers: null,
     tickers: "",
-    transport: "",
+    transport: null,
     heating: "",
     cooking: "",
   });
@@ -35,14 +48,14 @@ export default function QuizPage() {
   const canGoNext = useMemo(() => {
     switch (step) {
       case 1:
-        return data.bankName.trim().length > 0;
+        return data.bankSlug !== null || data.bankCategory !== null;
       case 2:
         return data.knowsTickers !== null;
       case 3:
         if (data.knowsTickers) return data.tickers.trim().length > 0;
         return true;
       case 4:
-        return !!data.transport;
+        return data.transport !== null;
       case 5:
         return !!data.heating;
       case 6:
@@ -59,10 +72,14 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 1,
+        version: 3,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
+          bankSlug: data.bankSlug,
+          bankDisplayName: data.bankDisplayName,
+          bankCategory: data.bankCategory,
+          transport: data.transport,
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -70,6 +87,12 @@ export default function QuizPage() {
       return;
     }
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
+
+    // Pre-score tickers in the background when leaving step 3
+    if (step === 3 && data.knowsTickers && data.tickers.trim()) {
+      prescoreRef.current?.abort();
+      prescoreRef.current = startPrescore(parseTickers(data.tickers));
+    }
   }
 
   return (
@@ -96,7 +119,7 @@ export default function QuizPage() {
               {step === 1 && "Your day-to-day banking"}
               {step === 2 && "Do you know your fund tickers?"}
               {step === 3 && "List any tickers you know"}
-              {step === 4 && "How do you usually get around?"}
+              {step === 4 && "Your primary vehicle"}
               {step === 5 && "How is your home heated?"}
               {step === 6 && "How do you mostly cook at home?"}
             </h1>
@@ -107,15 +130,72 @@ export default function QuizPage() {
 
           <div className="space-y-4">
             {step === 1 && (
-              <div className="space-y-2 text-left">
+              <div className="space-y-3 text-left">
                 <label className="text-sm font-medium">What&apos;s the main bank you use?</label>
-                <input
-                  type="text"
-                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                  placeholder="e.g. Green Valley Bank"
-                  value={data.bankName}
-                  onChange={(e) => setData((prev) => ({ ...prev, bankName: e.target.value }))}
-                />
+
+                {!showCategoryPicker ? (
+                  <>
+                    <BankTypeahead
+                      value={bankSearch}
+                      onChange={(text) => {
+                        setBankSearch(text);
+                        // Clear selection if user edits text after selecting
+                        if (data.bankSlug) {
+                          setData((prev) => ({ ...prev, bankSlug: null, bankDisplayName: "" }));
+                        }
+                      }}
+                      onSelect={(bank) => {
+                        setBankSearch(bank.name);
+                        setData((prev) => ({
+                          ...prev,
+                          bankSlug: bank.slug,
+                          bankDisplayName: bank.name,
+                          bankCategory: null,
+                        }));
+                      }}
+                      onNotFound={() => setShowCategoryPicker(true)}
+                    />
+                    {data.bankSlug && (
+                      <p className="text-xs text-emerald-700">
+                        Selected: <span className="font-semibold">{data.bankDisplayName}</span>
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-600">
+                      What type of bank do you use?
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {BANK_CATEGORIES.map((cat) => (
+                        <Button
+                          key={cat.value}
+                          type="button"
+                          variant={data.bankCategory === cat.value ? "primary" : "secondary"}
+                          size="sm"
+                          onClick={() =>
+                            setData((prev) => ({
+                              ...prev,
+                              bankSlug: null,
+                              bankDisplayName: cat.label,
+                              bankCategory: cat.value,
+                            }))
+                          }
+                        >
+                          {cat.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                      onClick={() => setShowCategoryPicker(false)}
+                    >
+                      ← Back to search
+                    </button>
+                  </div>
+                )}
+
                 <p className="text-xs text-slate-500">
                   This helps us reason about how your cash is working behind the scenes.
                 </p>
@@ -182,22 +262,10 @@ export default function QuizPage() {
             )}
 
             {step === 4 && (
-              <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">How do you primarily get around?</label>
-                <select
-                  className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                  value={data.transport}
-                  onChange={(e) => setData((prev) => ({ ...prev, transport: e.target.value }))}
-                >
-                  <option value="">Select one</option>
-                  <option value="gas">Gas</option>
-                  <option value="hybrid">Hybrid</option>
-                  <option value="phev">Plug-in hybrid (PHEV)</option>
-                  <option value="ev">Fully electric (EV)</option>
-                  <option value="none">None / mostly car-free</option>
-                  <option value="not_sure">Not sure</option>
-                </select>
-              </div>
+              <VehicleSelector
+                value={data.transport}
+                onChange={(t) => setData((prev) => ({ ...prev, transport: t }))}
+              />
             )}
 
             {step === 5 && (

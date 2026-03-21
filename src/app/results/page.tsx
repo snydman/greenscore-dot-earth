@@ -2,6 +2,10 @@
 
 import { scoreSingleTickerLive, parseTickers } from "../../lib/scoring/investments";
 import type { InvestmentFactor } from "../../lib/scoring/investments";
+import { scoreBanking, type BankScoreResult } from "../../lib/scoring/banking";
+import type { BankCategory } from "../../lib/data/banks";
+import { scoreTransport, type TransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
+import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card } from "../../components/ui";
@@ -11,18 +15,12 @@ type SavedPayload = {
   savedAt: string;
   answers: {
     tickers: string;
+    bankSlug?: string | null;
+    bankDisplayName?: string;
+    bankCategory?: string | null;
+    transport?: TransportQuizData | null;
   };
 };
-
-const MOCK_SCORE = 62;
-const MOCK_MAX = 100;
-
-const CATEGORIES = [
-  { name: "Money & investments", score: 58 },
-  { name: "Transport", score: 65 },
-  { name: "Home energy", score: 54 },
-  { name: "Everyday choices", score: 72 },
-];
 
 const IMPROVEMENTS = [
   {
@@ -38,6 +36,31 @@ const IMPROVEMENTS = [
     body: "A high-efficiency heat pump can cut emissions and improve comfort, especially in drafty homes.",
   },
 ];
+
+const RATING_BADGE_COLORS: Record<string, string> = {
+  great: "bg-emerald-50 text-emerald-800 ring-emerald-200/60",
+  good: "bg-emerald-50 text-emerald-700 ring-emerald-200/60",
+  ok: "bg-amber-50 text-amber-800 ring-amber-200/60",
+  bad: "bg-orange-50 text-orange-800 ring-orange-200/60",
+  worst: "bg-red-50 text-red-800 ring-red-200/60",
+};
+
+/** Poll localStorage cache for a prescore result, with timeout. */
+function pollForCachedResult(ticker: string, timeoutMs: number): Promise<InvestmentFactor | null> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      const cached = getCached(ticker);
+      if (cached) {
+        clearInterval(interval);
+        resolve(cached);
+      } else if (Date.now() - start > timeoutMs) {
+        clearInterval(interval);
+        resolve(null);
+      }
+    }, 500);
+  });
+}
 
 export default function ResultsPage() {
   const [saved, setSaved] = useState<SavedPayload | null>(null);
@@ -60,28 +83,66 @@ export default function ResultsPage() {
     return parseTickers(saved?.answers.tickers ?? "");
   }, [saved]);
 
-  // Score tickers via live EDGAR API, one at a time
+  // Score banking (synchronous — static data)
+  const bankScore: BankScoreResult = useMemo(() => {
+    return scoreBanking(
+      (saved?.answers.bankSlug ?? null) as string | null,
+      (saved?.answers.bankCategory ?? null) as BankCategory | null,
+    );
+  }, [saved]);
+
+  // Score transport (synchronous — data fetched during quiz)
+  const transportScore: TransportScoreResult = useMemo(() => {
+    return scoreTransport(saved?.answers.transport ?? null);
+  }, [saved]);
+
+  // Score tickers: check prescore cache first, then fetch uncached ones live
   const scoreAllTickers = useCallback(async (tickerList: string[]) => {
     if (tickerList.length === 0) {
       setScoringDone(true);
       return;
     }
 
-    // Initialize all tickers as loading
-    setFactors(
-      tickerList.map((t) => ({
+    // Initialize from cache where available, otherwise loading
+    const initial = tickerList.map((t) => {
+      const cached = getCached(t);
+      return cached ?? {
         ticker: t,
         points: 0,
         explanation: "Fetching SEC holdings data…",
         status: "loading" as const,
-      })),
-    );
+      };
+    });
+    setFactors(initial);
 
-    // Score each ticker sequentially (API calls SEC EDGAR which has rate limits)
-    for (let i = 0; i < tickerList.length; i++) {
-      const result = await scoreSingleTickerLive(tickerList[i]);
+    // Identify which tickers still need fetching
+    const uncached = tickerList.filter((t) => !getCached(t));
+
+    if (uncached.length === 0) {
+      setScoringDone(true);
+      return;
+    }
+
+    // Check if pre-scoring is in flight
+    const activePrescore = getActivePrescore();
+
+    for (const ticker of uncached) {
+      let result: InvestmentFactor;
+
+      // If prescore is running for this ticker, poll cache briefly before fetching
+      if (activePrescore?.includes(ticker)) {
+        result = await pollForCachedResult(ticker, 15_000) ?? await scoreSingleTickerLive(ticker);
+      } else {
+        result = await scoreSingleTickerLive(ticker);
+      }
+
+      // Cache the result for future visits
+      if (result.status === "scored") {
+        writeOne(ticker, result);
+      }
+
       setFactors((prev) =>
-        prev.map((f, idx) => (idx === i ? result : f)),
+        prev.map((f) => (f.ticker === ticker ? result : f)),
       );
     }
     setScoringDone(true);
@@ -107,6 +168,19 @@ export default function ResultsPage() {
 
   const isLoading = factors.some((f) => f.status === "loading");
 
+  // Compute live overall GreenScore from available subscores
+  const overallScore = useMemo(() => {
+    const bankPts = bankScore.points;
+    const investPts = scoringDone || tickers.length === 0 ? investmentScore.points : 0;
+    const transportPts = transportScore.points;
+    const totalPoints = bankPts + investPts + transportPts;
+    const maxPoints = bankScore.maxPoints + investmentScore.maxPoints + transportScore.maxPoints; // 20 + 40 + 20 = 80
+    const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
+    return { totalPoints, maxPoints, pct };
+  }, [bankScore, investmentScore, transportScore, scoringDone, tickers.length]);
+
+  const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
+
   return (
     <main className="gs-container py-10 sm:py-12">
 
@@ -117,17 +191,17 @@ export default function ResultsPage() {
         >
           ← Back to quiz
         </Link>
-        <span className="text-[0.7rem]">Placeholder results based on example inputs.</span>
+        <span className="text-[0.7rem]">Banking, transport + investments scored from live data. More categories coming soon.</span>
       </header>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
         <Card className="flex flex-col items-center gap-6 text-center">
           <div className="space-y-2">
             <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-              Your GreenScore (example)
+              Your GreenScore
             </h1>
             <p className="text-xs text-[color:var(--gs-text-muted)]">
-              This is a placeholder score to illustrate the experience — it&apos;s not based on live data yet.
+              Based on your banking, transport, and investment choices. Home energy and everyday choices coming soon.
             </p>
           </div>
 
@@ -135,19 +209,22 @@ export default function ResultsPage() {
             <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-emerald-200 via-emerald-50 to-amber-100" />
             <div className="absolute inset-4 rounded-full border border-emerald-200/80 bg-white shadow-inner" />
             <div className="relative flex flex-col items-center justify-center gap-1">
-              <span className="text-4xl font-semibold sm:text-5xl">{MOCK_SCORE}</span>
+              <span className="text-4xl font-semibold sm:text-5xl">
+                {isLoading ? "…" : overallScore.pct}
+              </span>
               <span className="text-xs font-medium uppercase tracking-wide text-[color:var(--gs-text-muted)]">
-                out of {MOCK_MAX}
+                out of 100
               </span>
-              <span className="mt-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
-                Moderate — room to grow
-              </span>
+              {!isLoading && (
+                <span className="mt-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">
+                  {scoreLabel}
+                </span>
+              )}
             </div>
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            Confidence: <span className="font-semibold text-[color:var(--gs-text-main)]">Low (prototype)</span>{" "}
-            — this is example output to validate the experience, not a calibrated benchmark.
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankScore.points}/{bankScore.maxPoints}) + transport ({transportScore.points}/{transportScore.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -165,6 +242,57 @@ export default function ResultsPage() {
         </Card>
 
         <div className="space-y-4">
+          {/* ── Banking Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Banking (Bank.Green data)
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                Banking score: {bankScore.points} / {bankScore.maxPoints}
+              </div>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[bankScore.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                {bankScore.rating}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+              <div className="text-sm">
+                <span className="font-semibold text-slate-900">{bankScore.bankName}</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{bankScore.explanation}</div>
+            </div>
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">Bank.Green</span> — fossil fuel lending data
+              {bankScore.source === "category-fallback" && " (estimated from bank type)"}
+            </div>
+          </Card>
+
+          {/* ── Transport Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Transport (EPA data)
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                Transport score: {transportScore.points} / {transportScore.maxPoints}
+              </div>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${RATING_BADGE_COLORS[transportScore.rating] ?? RATING_BADGE_COLORS.ok}`}>
+                {transportScore.rating}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+              <div className="text-sm">
+                <span className="font-semibold text-slate-900">{transportScore.vehicleLabel}</span>
+              </div>
+              <div className="mt-1 text-xs text-slate-500">{transportScore.explanation}</div>
+            </div>
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">{transportScore.source === "epa" ? "EPA fueleconomy.gov" : "User selection"}</span>
+              {transportScore.source === "epa" && " — CO₂ tailpipe emissions data"}
+            </div>
+          </Card>
+
+          {/* ── Investments Card ── */}
           <Card className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
               Investments {isLoading ? "(scoring…)" : "(live SEC data)"}
@@ -270,31 +398,10 @@ export default function ResultsPage() {
             </div>
           </Card>
 
+          {/* ── Improvements ── */}
           <Card className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Category breakdown (example)
-            </p>
-            <ul className="space-y-3">
-              {CATEGORIES.map((cat) => (
-                <li key={cat.name} className="flex items-center justify-between gap-4 text-sm">
-                  <div className="flex flex-col">
-                    <span className="font-medium">{cat.name}</span>
-                    <span className="text-xs text-[color:var(--gs-text-muted)]">
-                      Placeholder sub-score, not yet calibrated.
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{cat.score}</span>
-                    <span className="text-[11px] text-slate-400">/ 100</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-
-          <Card className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Top 3 improvements (example)
+              Top improvements
             </p>
             <ul className="space-y-3 text-sm">
               {IMPROVEMENTS.map((item) => (
