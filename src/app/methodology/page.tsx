@@ -8,13 +8,13 @@ export default function MethodologyPage() {
           href="/"
           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
         >
-          ← Home
+          &larr; Home
         </Link>
         <Link
           href="/results"
           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
         >
-          Your results →
+          Your results &rarr;
         </Link>
       </header>
 
@@ -25,47 +25,131 @@ export default function MethodologyPage() {
           </h1>
           <p className="text-sm text-[color:var(--gs-text-muted)]">
             How GreenScore measures the environmental impact of your banking,
-            transport, heating, and investment choices. This page covers the
+            transport, heating, air travel, and investment choices. This page covers the
             data sources, scoring formulas, and known limitations of the
             current prototype.
           </p>
         </div>
 
+        {/* ── Data Sources ── */}
+        <Section title="Data sources">
+          <p>
+            GreenScore pulls data from the following free, public APIs and
+            datasets. No proprietary data is used &mdash; everything is
+            verifiable.
+          </p>
+          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-2.5">Category</th>
+                  <th className="px-4 py-2.5">Source</th>
+                  <th className="px-4 py-2.5">What we use</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Banking</td>
+                  <td className="px-4 py-2">
+                    <a href="https://bank.green" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">Bank.Green GraphQL API</a>
+                  </td>
+                  <td className="px-4 py-2">Fossil fuel lending ratings for 5,000+ banks worldwide</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Transport</td>
+                  <td className="px-4 py-2">
+                    <a href="https://fueleconomy.gov" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">EPA fueleconomy.gov</a>
+                  </td>
+                  <td className="px-4 py-2">CO&#x2082; g/mile and MPG for every vehicle sold in the US</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Heating</td>
+                  <td className="px-4 py-2">
+                    <a href="https://www.epa.gov/egrid" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">EPA eGRID 2023</a>
+                  </td>
+                  <td className="px-4 py-2">State-level grid carbon intensity (lbs CO&#x2082;/MWh)</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Investments</td>
+                  <td className="px-4 py-2">
+                    <a href="https://www.sec.gov/search-filings/edgar-application-programming-interfaces" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">SEC EDGAR</a>
+                  </td>
+                  <td className="px-4 py-2">N-PORT quarterly fund holdings (complete portfolio disclosure)</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">EV chargers</td>
+                  <td className="px-4 py-2">
+                    <a href="https://developer.nlr.gov/docs/alt-fuel-stations-v1/" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">NREL Alt Fuel Stations API</a>
+                  </td>
+                  <td className="px-4 py-2">EV charging stations within 10 miles of your zip code</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Solar</td>
+                  <td className="px-4 py-2">
+                    <a href="https://developer.nlr.gov/docs/solar/pvwatts/v8/" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">NREL PVWatts v8 API</a>
+                  </td>
+                  <td className="px-4 py-2">Estimated annual solar production for a 5kW rooftop system</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Geocoding</td>
+                  <td className="px-4 py-2">
+                    <a href="https://api.zippopotam.us" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">Zippopotam.us</a>
+                  </td>
+                  <td className="px-4 py-2">Zip code to coordinates and state (for local insights)</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2 font-semibold">Action plan</td>
+                  <td className="px-4 py-2">
+                    <a href="https://docs.anthropic.com" className="font-semibold text-emerald-800 underline-offset-2 hover:underline" target="_blank" rel="noopener noreferrer">Anthropic Claude API</a>
+                  </td>
+                  <td className="px-4 py-2">AI-generated personalized action plan (Claude Haiku)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p>
+            All API calls are made server-side. Your answers stay in your
+            browser via localStorage &mdash; we do not store any personal data.
+          </p>
+        </Section>
+
         {/* ── Overall Score ── */}
         <Section title="Overall GreenScore">
           <p>
-            Your overall GreenScore is a composite of category subscores,
-            expressed as a percentage of available points:
+            Your overall GreenScore is the sum of five category subscores,
+            totaling a maximum of 100 points:
           </p>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <strong>Banking</strong> &mdash; 0 to 20 points (based on fossil
+              <strong>Banking</strong> &mdash; 0 to 18 points (based on fossil
               fuel lending)
             </li>
             <li>
-              <strong>Transport</strong> &mdash; 0 to 20 points (based on
-              vehicle CO₂ emissions)
+              <strong>Transport</strong> &mdash; 0 to 18 points (based on
+              vehicle CO&#x2082; emissions)
             </li>
             <li>
-              <strong>Heating</strong> &mdash; 0 to 20 points (based on home
+              <strong>Heating</strong> &mdash; 0 to 18 points (based on home
               heating type and grid cleanliness)
             </li>
             <li>
-              <strong>Investments</strong> &mdash; 0 to 40 points (based on
+              <strong>Air travel</strong> &mdash; 0 to 10 points (based on
+              flight frequency)
+            </li>
+            <li>
+              <strong>Investments</strong> &mdash; 0 to 36 points (based on
               fossil fuel holdings in your funds)
             </li>
           </ul>
           <p>
-            The maximum is 100 points. Your score is displayed as{" "}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-              (your points / 100) &times; 100
-            </code>
-            .
+            Your score is displayed directly as a number out of 100. Investments
+            carry the most weight because financial assets are typically the
+            largest lever for individual climate impact.
           </p>
         </Section>
 
         {/* ── Banking ── */}
-        <Section title="Banking score (0&ndash;20)">
+        <Section title="Banking score (0&ndash;18)">
           <p>
             We score your bank based on its exposure to fossil fuel lending
             using ratings from{" "}
@@ -94,21 +178,21 @@ export default function MethodologyPage() {
                   <td className="px-4 py-2">
                     <Grade letter="Great" color="emerald" />
                   </td>
-                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2 font-semibold">18</td>
                   <td className="px-4 py-2">Fossil Free certified &mdash; no fossil fuel lending</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">
                     <Grade letter="Good" color="emerald" />
                   </td>
-                  <td className="px-4 py-2 font-semibold">16</td>
+                  <td className="px-4 py-2 font-semibold">14</td>
                   <td className="px-4 py-2">Minimal fossil fuel exposure, strong climate policies</td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">
                     <Grade letter="OK" color="amber" />
                   </td>
-                  <td className="px-4 py-2 font-semibold">10</td>
+                  <td className="px-4 py-2 font-semibold">9</td>
                   <td className="px-4 py-2">Some fossil fuel lending, limited transparency</td>
                 </tr>
                 <tr>
@@ -130,15 +214,14 @@ export default function MethodologyPage() {
           </div>
 
           <p>
-            We maintain a curated list of approximately 30 US banks matched to
-            Bank.Green ratings. If your bank is not in our list, we estimate a
-            score based on bank type:
+            We search the Bank.Green database of over 5,000 banks worldwide. If
+            your bank is not found, we estimate a score based on bank type:
           </p>
           <ul className="list-disc space-y-1 pl-5">
-            <li><strong>CDFI / community bank</strong> &mdash; scored as &ldquo;Good&rdquo; (16 points)</li>
-            <li><strong>Credit union</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
-            <li><strong>Online / neobank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
-            <li><strong>Regional bank</strong> &mdash; scored as &ldquo;OK&rdquo; (10 points)</li>
+            <li><strong>CDFI / community bank</strong> &mdash; scored as &ldquo;Good&rdquo; (14 points)</li>
+            <li><strong>Credit union</strong> &mdash; scored as &ldquo;OK&rdquo; (9 points)</li>
+            <li><strong>Online / neobank</strong> &mdash; scored as &ldquo;OK&rdquo; (9 points)</li>
+            <li><strong>Regional bank</strong> &mdash; scored as &ldquo;OK&rdquo; (9 points)</li>
             <li><strong>Large national bank</strong> &mdash; scored as &ldquo;Bad&rdquo; (4 points)</li>
           </ul>
           <p>
@@ -150,9 +233,9 @@ export default function MethodologyPage() {
         </Section>
 
         {/* ── Transport ── */}
-        <Section title="Transport score (0&ndash;20)">
+        <Section title="Transport score (0&ndash;18)">
           <p>
-            We score your primary vehicle based on its tailpipe CO₂ emissions
+            We score your primary vehicle based on its tailpipe CO&#x2082; emissions
             using data from the{" "}
             <a
               href="https://fueleconomy.gov"
@@ -163,22 +246,22 @@ export default function MethodologyPage() {
               EPA fueleconomy.gov
             </a>{" "}
             database. Every vehicle sold in the US has official EPA emissions
-            data including CO₂ grams per mile and combined MPG.
+            data including CO&#x2082; grams per mile and combined MPG.
           </p>
 
           <p>
             The score is calculated as:{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-              score = 20 &times; (1 &minus; CO₂ g/mile / 500)
+              score = 18 &times; (1 &minus; CO&#x2082; g/mile / 500)
             </code>
-            , clamped to 0&ndash;20.
+            , clamped to 0&ndash;18.
           </p>
 
           <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">CO₂ g/mile</th>
+                  <th className="px-4 py-2.5">CO&#x2082; g/mile</th>
                   <th className="px-4 py-2.5">Score</th>
                   <th className="px-4 py-2.5">Rating</th>
                 </tr>
@@ -186,28 +269,28 @@ export default function MethodologyPage() {
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
                 <tr>
                   <td className="px-4 py-2">0</td>
-                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2 font-semibold">18</td>
                   <td className="px-4 py-2">
                     <Grade letter="Great" color="emerald" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">1 &ndash; 150</td>
-                  <td className="px-4 py-2 font-semibold">14 &ndash; 20</td>
+                  <td className="px-4 py-2 font-semibold">13 &ndash; 18</td>
                   <td className="px-4 py-2">
                     <Grade letter="Good" color="emerald" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">151 &ndash; 300</td>
-                  <td className="px-4 py-2 font-semibold">8 &ndash; 14</td>
+                  <td className="px-4 py-2 font-semibold">7 &ndash; 13</td>
                   <td className="px-4 py-2">
                     <Grade letter="OK" color="amber" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">301 &ndash; 450</td>
-                  <td className="px-4 py-2 font-semibold">2 &ndash; 8</td>
+                  <td className="px-4 py-2 font-semibold">2 &ndash; 7</td>
                   <td className="px-4 py-2">
                     <Grade letter="Bad" color="orange" />
                   </td>
@@ -227,8 +310,8 @@ export default function MethodologyPage() {
             Special cases:
           </p>
           <ul className="list-disc space-y-1 pl-5">
-            <li><strong>No car</strong> &mdash; 20/20 (zero transport emissions)</li>
-            <li><strong>Not sure / skipped</strong> &mdash; 10/20 (scored neutrally)</li>
+            <li><strong>No car</strong> &mdash; 18/18 (zero transport emissions)</li>
+            <li><strong>Not sure / skipped</strong> &mdash; 9/18 (scored neutrally)</li>
           </ul>
           <p>
             <strong>Multiple vehicles:</strong> If you enter more than one
@@ -239,7 +322,7 @@ export default function MethodologyPage() {
         </Section>
 
         {/* ── Heating ── */}
-        <Section title="Heating score (0&ndash;20)">
+        <Section title="Heating score (0&ndash;18)">
           <p>
             We score your home heating based on the type of heating system and,
             for electric heating, the carbon intensity of your state&apos;s
@@ -258,35 +341,35 @@ export default function MethodologyPage() {
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
                 <tr>
                   <td className="px-4 py-2">Heat pump</td>
-                  <td className="px-4 py-2 font-semibold">20</td>
+                  <td className="px-4 py-2 font-semibold">18</td>
                   <td className="px-4 py-2">
                     <Grade letter="Great" color="emerald" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">Electric resistance</td>
-                  <td className="px-4 py-2 font-semibold">14</td>
+                  <td className="px-4 py-2 font-semibold">13</td>
                   <td className="px-4 py-2">
                     <Grade letter="Good" color="emerald" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">Natural gas</td>
-                  <td className="px-4 py-2 font-semibold">10</td>
+                  <td className="px-4 py-2 font-semibold">9</td>
                   <td className="px-4 py-2">
                     <Grade letter="OK" color="amber" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">Wood / pellet</td>
-                  <td className="px-4 py-2 font-semibold">8</td>
+                  <td className="px-4 py-2 font-semibold">7</td>
                   <td className="px-4 py-2">
                     <Grade letter="OK" color="amber" />
                   </td>
                 </tr>
                 <tr>
                   <td className="px-4 py-2">Propane</td>
-                  <td className="px-4 py-2 font-semibold">6</td>
+                  <td className="px-4 py-2 font-semibold">5</td>
                   <td className="px-4 py-2">
                     <Grade letter="Bad" color="orange" />
                   </td>
@@ -305,7 +388,7 @@ export default function MethodologyPage() {
           <p>
             <strong>State grid modifier (electric heating only):</strong> If you
             select a heat pump or electric resistance heating and provide your
-            state, we adjust the score based on how clean your state&apos;s
+            zip code (or state), we adjust the score based on how clean your state&apos;s
             electricity grid is compared to the national average, using{" "}
             <a
               href="https://www.epa.gov/egrid"
@@ -325,11 +408,63 @@ export default function MethodologyPage() {
             <li><strong>Very dirty grid</strong> (e.g. WV, WY, KY) &mdash; &minus;3 points</li>
           </ul>
           <p>
-            The final score is clamped to 0&ndash;20. Heating type scores are
-            based on EIA CO₂ emissions coefficients: natural gas ~117 lbs
-            CO₂/MMBtu, heating oil ~163, propane ~139. Heat pumps earn the top
+            The final score is clamped to 0&ndash;18. Heating type scores are
+            based on EIA CO&#x2082; emissions coefficients: natural gas ~117 lbs
+            CO&#x2082;/MMBtu, heating oil ~163, propane ~139. Heat pumps earn the top
             score because they are 3&ndash;4&times; more efficient than
             resistance heating with zero on-site combustion emissions.
+          </p>
+        </Section>
+
+        {/* ── Air Travel ── */}
+        <Section title="Air travel score (0&ndash;10)">
+          <p>
+            Air travel is scored as an awareness category with gentle
+            weighting. A single cross-country round-trip emits roughly 1 tonne
+            of CO&#x2082; &mdash; about the same as 3 months of average driving.
+          </p>
+
+          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-2.5">Flights per year</th>
+                  <th className="px-4 py-2.5">Score</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
+                <tr>
+                  <td className="px-4 py-2">No flights</td>
+                  <td className="px-4 py-2 font-semibold">10</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">1&ndash;2 round trips</td>
+                  <td className="px-4 py-2 font-semibold">8</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">3&ndash;5 round trips</td>
+                  <td className="px-4 py-2 font-semibold">6</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">6&ndash;10 round trips</td>
+                  <td className="px-4 py-2 font-semibold">3</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">11+ round trips</td>
+                  <td className="px-4 py-2 font-semibold">1</td>
+                </tr>
+                <tr>
+                  <td className="px-4 py-2">Not sure</td>
+                  <td className="px-4 py-2 font-semibold">5</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>
+            This category is intentionally weighted lower than others. The goal
+            is awareness &mdash; understanding where your footprint comes from
+            &mdash; not guilt or judgment.
           </p>
         </Section>
 
@@ -438,67 +573,18 @@ export default function MethodologyPage() {
         </Section>
 
         {/* ── Score Formula ── */}
-        <Section title="Scoring formula">
+        <Section title="Investment scoring formula (0&ndash;36)">
           <p>
-            Each fund receives a score from 0 to 40 based on its total fossil
+            Each fund receives a score from 0 to 36 based on its total fossil
             fuel exposure percentage:
           </p>
-
-          <div className="overflow-hidden rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">Fossil exposure</th>
-                  <th className="px-4 py-2.5">Score</th>
-                  <th className="px-4 py-2.5">Grade</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
-                <tr>
-                  <td className="px-4 py-2">0 &ndash; 1%</td>
-                  <td className="px-4 py-2 font-semibold">38 &ndash; 40</td>
-                  <td className="px-4 py-2">
-                    <Grade letter="A" color="emerald" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-2">1 &ndash; 3%</td>
-                  <td className="px-4 py-2 font-semibold">34 &ndash; 38</td>
-                  <td className="px-4 py-2">
-                    <Grade letter="B" color="emerald" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-2">3 &ndash; 7%</td>
-                  <td className="px-4 py-2 font-semibold">26 &ndash; 34</td>
-                  <td className="px-4 py-2">
-                    <Grade letter="C" color="amber" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-2">7 &ndash; 15%</td>
-                  <td className="px-4 py-2 font-semibold">10 &ndash; 26</td>
-                  <td className="px-4 py-2">
-                    <Grade letter="D" color="orange" />
-                  </td>
-                </tr>
-                <tr>
-                  <td className="px-4 py-2">15%+</td>
-                  <td className="px-4 py-2 font-semibold">0 &ndash; 10</td>
-                  <td className="px-4 py-2">
-                    <Grade letter="F" color="red" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
           <p>
             The numeric score is calculated as:{" "}
             <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
-              score = 40 &times; (1 &minus; exposure / 20)
+              score = 36 &times; (1 &minus; exposure / 20)
             </code>
-            , clamped to 0&ndash;40. This means 0% exposure earns a perfect 40,
+            , clamped to 0&ndash;36. This means 0% exposure earns a perfect 36,
             and 20% or more yields 0.
           </p>
           <p>
@@ -507,10 +593,52 @@ export default function MethodologyPage() {
           </p>
         </Section>
 
+        {/* ── Local Insights ── */}
+        <Section title="Local insights">
+          <p>
+            If you provide your zip code, we enrich your results with
+            location-specific data:
+          </p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>
+              <strong>EV charger availability</strong> &mdash; nearby charging
+              stations from the{" "}
+              <a
+                href="https://developer.nlr.gov/docs/alt-fuel-stations-v1/"
+                className="font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                NREL Alternative Fuel Stations API
+              </a>
+            </li>
+            <li>
+              <strong>Solar potential</strong> &mdash; estimated annual
+              production from a typical 5kW rooftop system via the{" "}
+              <a
+                href="https://developer.nlr.gov/docs/solar/pvwatts/v8/"
+                className="font-semibold text-emerald-800 underline-offset-2 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                NREL PVWatts API
+              </a>
+            </li>
+            <li>
+              <strong>Grid cleanliness</strong> &mdash; your state&apos;s grid
+              carbon intensity is automatically applied to your heating score
+              if you use electric heating
+            </li>
+          </ul>
+          <p>
+            Your zip code is used only for the API call and is never stored.
+          </p>
+        </Section>
+
         {/* ── Confidence ── */}
         <Section title="Confidence level">
           <p>
-            We report a confidence level alongside your score to indicate how
+            We report a confidence level alongside your investment score to indicate how
             much of your input we were able to score:
           </p>
           <ul className="list-disc space-y-1 pl-5">

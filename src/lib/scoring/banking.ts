@@ -6,8 +6,8 @@ import {
 } from "../data/banks";
 
 export type BankScoreResult = {
-  points: number; // 0..20
-  maxPoints: 20;
+  points: number; // 0..18
+  maxPoints: 18;
   bankName: string;
   rating: BankGreenRating;
   source: "curated" | "category-fallback";
@@ -15,9 +15,9 @@ export type BankScoreResult = {
 };
 
 const RATING_POINTS: Record<BankGreenRating, number> = {
-  great: 20,
-  good: 16,
-  ok: 10,
+  great: 18,
+  good: 14,
+  ok: 9,
   bad: 4,
   worst: 0,
 };
@@ -32,7 +32,7 @@ const RATING_LABELS: Record<BankGreenRating, string> = {
 
 export type MultiBankScoreResult = {
   points: number;
-  maxPoints: 20;
+  maxPoints: 18;
   individual: BankScoreResult[];
 };
 
@@ -57,13 +57,13 @@ export function scoreBanks(
   }>,
 ): MultiBankScoreResult {
   if (banks.length === 0) {
-    return { points: 10, maxPoints: 20, individual: [] };
+    return { points: 9, maxPoints: 18, individual: [] };
   }
   const individual = banks.map((b) =>
     scoreBanking(b.bankSlug, b.bankCategory, b.bankRating, b.bankDisplayName),
   );
   const points = weightedAverage(individual.map((r) => r.points));
-  return { points, maxPoints: 20, individual };
+  return { points, maxPoints: 18, individual };
 }
 
 export function scoreBanking(
@@ -77,7 +77,7 @@ export function scoreBanking(
     const rating = bankGreenRating as BankGreenRating;
     return {
       points: RATING_POINTS[rating],
-      maxPoints: 20,
+      maxPoints: 18,
       bankName: displayName ?? bankSlug ?? "Unknown",
       rating,
       source: "curated",
@@ -91,7 +91,7 @@ export function scoreBanking(
     if (bank) {
       return {
         points: RATING_POINTS[bank.rating],
-        maxPoints: 20,
+        maxPoints: 18,
         bankName: bank.name,
         rating: bank.rating,
         source: "curated",
@@ -106,7 +106,7 @@ export function scoreBanking(
     if (cat) {
       return {
         points: RATING_POINTS[cat.rating],
-        maxPoints: 20,
+        maxPoints: 18,
         bankName: cat.label,
         rating: cat.rating,
         source: "category-fallback",
@@ -118,7 +118,7 @@ export function scoreBanking(
   // No bank info at all
   return {
     points: 10,
-    maxPoints: 20,
+    maxPoints: 18,
     bankName: "Unknown",
     rating: "ok",
     source: "category-fallback",

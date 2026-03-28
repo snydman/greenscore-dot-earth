@@ -22,8 +22,8 @@ type FundEntry = {
   };
 
   export type InvestmentScoreResult = {
-    points: number; // 0..40
-    maxPoints: 40;
+    points: number; // 0..36
+    maxPoints: 36;
     confidence: "low" | "medium" | "high";
     factors: InvestmentFactor[];
     unknownTickers: string[];
@@ -51,15 +51,15 @@ type FundEntry = {
   
     // Common letter grade mapping
     const map: Record<string, number> = {
-      A: 40,
-      "A-": 38,
-      B: 34,
-      "B-": 32,
-      C: 26,
-      "C-": 24,
-      D: 16,
-      "D-": 14,
-      F: 6,
+      A: 36,
+      "A-": 34,
+      B: 31,
+      "B-": 29,
+      C: 23,
+      "C-": 22,
+      D: 14,
+      "D-": 13,
+      F: 5,
     };
   
     if (grade in map) {
@@ -68,7 +68,7 @@ type FundEntry = {
     }
   
     // If missing / unrecognized
-    return { points: 24, explanation: "No recognized fossil fuel grade → neutral 24/40 (prototype)" };
+    return { points: 22, explanation: "No recognized fossil fuel grade → neutral 22/36 (prototype)" };
   }
   
   export function scoreInvestments(
@@ -79,7 +79,7 @@ type FundEntry = {
     if (tickers.length === 0) {
       return {
         points: 0,
-        maxPoints: 40,
+        maxPoints: 36,
         confidence: "low",
         factors: [],
         unknownTickers: [],
@@ -95,8 +95,8 @@ type FundEntry = {
         unknown.push(t);
         factors.push({
           ticker: t,
-          points: 24,
-          explanation: "Ticker not found in dataset → neutral 24/40 (prototype)",
+          points: 22,
+          explanation: "Ticker not found in dataset → neutral 22/36 (prototype)",
           status: "unknown",
         });
         continue;
@@ -113,7 +113,7 @@ type FundEntry = {
       });
     }
   
-    // Average the per-ticker points to get a section score (0..40)
+    // Average the per-ticker points to get a section score (0..36)
     const avg = factors.reduce((sum, f) => sum + f.points, 0) / factors.length;
     const points = Math.round(avg);
   
@@ -128,7 +128,7 @@ type FundEntry = {
   
     return {
       points,
-      maxPoints: 40,
+      maxPoints: 36,
       confidence,
       factors,
       unknownTickers: unknown,
