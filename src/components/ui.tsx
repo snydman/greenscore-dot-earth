@@ -72,7 +72,14 @@ export function StepProgress({ current, total }: ProgressProps) {
         </span>
       </div>
 
-      <div className="h-2 w-full overflow-hidden rounded-full bg-black/5">
+      <div
+        className="h-2 w-full overflow-hidden rounded-full bg-black/5"
+        role="progressbar"
+        aria-valuenow={safeCurrent}
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-label={`Quiz progress: step ${safeCurrent} of ${total}`}
+      >
         <div
           className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-emerald-400 to-amber-300 transition-[width]"
           style={{ width: `${percent}%` }}

@@ -35,16 +35,23 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   };
 }
 
+/** Clamp a numeric URL param to a valid score range */
+function safeScore(val: string | string[] | undefined, max: number): number {
+  const n = Number(val ?? 0);
+  if (isNaN(n)) return 0;
+  return Math.max(0, Math.min(Math.round(n), max));
+}
+
 export default async function SharePage({ searchParams }: Props) {
   const params = await searchParams;
   return (
     <ShareClient
-      score={Number(params.s ?? 0)}
-      bank={Number(params.b ?? 0)}
-      transport={Number(params.t ?? 0)}
-      heating={Number(params.h ?? 0)}
-      invest={Number(params.i ?? 0)}
-      airTravel={Number(params.a ?? 0)}
+      score={safeScore(params.s, 100)}
+      bank={safeScore(params.b, 18)}
+      transport={safeScore(params.t, 18)}
+      heating={safeScore(params.h, 18)}
+      invest={safeScore(params.i, 36)}
+      airTravel={safeScore(params.a, 10)}
     />
   );
 }

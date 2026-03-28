@@ -67,7 +67,7 @@ export function scoreVehicles(
   vehicles: TransportQuizData[],
 ): MultiTransportScoreResult {
   if (vehicles.length === 0) {
-    return { points: 10, maxPoints: 18, individual: [] };
+    return { points: 9, maxPoints: 18, individual: [] };
   }
   const individual = vehicles.map((v) => scoreTransport(v));
   const points = weightedAverage(individual.map((r) => r.points));

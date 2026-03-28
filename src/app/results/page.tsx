@@ -116,8 +116,8 @@ export default function ResultsPage() {
       }
 
       setSaved(parsed);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.warn("[results] Failed to parse saved quiz data:", err);
     }
   }, []);
 
@@ -161,7 +161,7 @@ export default function ResultsPage() {
     fetch(`/api/local-insights?zip=${encodeURIComponent(zip)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => { if (data) setLocalInsights(data); })
-      .catch(() => {})
+      .catch((err) => console.warn("[results] Local insights failed:", err))
       .finally(() => setLocalLoading(false));
   }, [saved]);
 
@@ -337,10 +337,29 @@ export default function ResultsPage() {
     });
   }, [saved, bankResult, transportResult, heatingResult, investmentScore, factors]);
 
-  return (
-    <main className="gs-container py-10 sm:py-12">
+  // Guard: no quiz data → prompt user to take the quiz
+  if (!saved) {
+    return (
+      <main id="main-content" className="gs-container py-10 sm:py-12">
+        <div className="mx-auto mt-20 max-w-md text-center">
+          <Card className="flex flex-col items-center gap-4 px-8 py-10">
+            <h1 className="text-xl font-semibold tracking-tight">No results yet</h1>
+            <p className="text-sm text-[color:var(--gs-text-muted)]">
+              Take the GreenScore quiz first — it&apos;s free, private, and takes about 5 minutes.
+            </p>
+            <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-5 py-2.5 text-sm">
+              Start the quiz
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
 
-      <header className="flex items-center justify-between text-xs sm:text-sm text-[color:var(--gs-text-muted)]">
+  return (
+    <main id="main-content" className="gs-container py-10 sm:py-12">
+
+      <nav aria-label="Results navigation" className="flex items-center justify-between text-xs sm:text-sm text-[color:var(--gs-text-muted)]">
         <Link
           href="/quiz"
           className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
@@ -348,7 +367,7 @@ export default function ResultsPage() {
           ← Back to quiz
         </Link>
         <span className="text-[0.7rem]">Banking, transport, heating, air travel + investments scored from live data.</span>
-      </header>
+      </nav>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
         <Card className="flex flex-col items-center gap-6 text-center">
@@ -384,15 +403,11 @@ export default function ResultsPage() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link href="/quiz">
-              <Button variant="primary" size="sm">
-                Retake quiz
-              </Button>
+            <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-3 py-1.5 text-xs">
+              Retake quiz
             </Link>
-            <Link href="/methodology">
-              <Button variant="secondary" size="sm">
-                Methodology
-              </Button>
+            <Link href="/methodology" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 border border-[color:var(--gs-border-subtle)] bg-white/70 text-[color:var(--gs-text-main)] shadow-sm hover:bg-white px-3 py-1.5 text-xs">
+              Methodology
             </Link>
             <Button variant="secondary" size="sm" onClick={handleShare}>
               {copied ? "Link copied!" : "Share results"}
@@ -551,7 +566,7 @@ export default function ResultsPage() {
               </p>
 
               {localLoading ? (
-                <p className="text-sm text-slate-400 animate-pulse">Loading local data...</p>
+                <p role="status" aria-live="polite" className="text-sm text-slate-400 animate-pulse">Loading local data...</p>
               ) : localInsights && (
                 <div className="space-y-3">
                   {/* EV Chargers */}
@@ -752,6 +767,7 @@ export default function ResultsPage() {
             {actionPlan ? (
               <div className="prose prose-sm prose-slate max-w-none text-sm leading-relaxed [&_strong]:text-slate-900" dangerouslySetInnerHTML={{
                 __html: actionPlan
+                  .replace(/<[^>]*>/g, "")                 // strip any HTML tags from LLM output first
                   .replace(/^#{1,3}\s+.*$/gm, "")         // strip markdown headers
                   .replace(/^---+$/gm, "")                 // strip horizontal rules
                   .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
@@ -761,8 +777,8 @@ export default function ResultsPage() {
                   .trim(),
               }} />
             ) : actionPlanLoading ? (
-              <div className="flex items-center gap-2 text-sm text-slate-400 animate-pulse">
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <div role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-slate-400 animate-pulse">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
@@ -799,8 +815,8 @@ export default function ResultsPage() {
               From choosing a heat pump to navigating rebate programs to building
               greener habits — our sustainability coaches can help you take the next step.
             </p>
-            <a href="mailto:hello@greenscore.earth">
-              <Button variant="secondary" size="sm">Contact us</Button>
+            <a href="mailto:hello@greenscore.earth" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 border border-[color:var(--gs-border-subtle)] bg-white/70 text-[color:var(--gs-text-main)] shadow-sm hover:bg-white px-3 py-1.5 text-xs">
+              Contact us
             </a>
           </Card>
         </div>

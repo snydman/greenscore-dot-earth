@@ -93,3 +93,29 @@
   background: color-mix(in srgb, var(--gs-accent-soft) 70%, white 30%);
   color: color-mix(in srgb, var(--gs-accent-deep) 90%, black 10%);
 }
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Forced-colors mode: ensure focus indicators use outline instead of box-shadow */
+@media (forced-colors: active) {
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+}

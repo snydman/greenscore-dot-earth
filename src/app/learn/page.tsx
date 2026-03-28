@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ARTICLES, categoryLabel } from "../../lib/data/articles";
-import { Button, Card } from "../../components/ui";
+import { Card } from "../../components/ui";
 
 const CATEGORY_COLORS: Record<string, string> = {
   banking: "bg-emerald-50 text-emerald-800 ring-emerald-200/60",
@@ -13,9 +13,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function LearnPage() {
   return (
-    <main className="gs-container py-10 sm:py-14">
+    <main id="main-content" className="gs-container py-10 sm:py-14">
       {/* Nav */}
-      <div className="flex items-center justify-between">
+      <nav aria-label="Main navigation" className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-2">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
             G
@@ -24,16 +24,14 @@ export default function LearnPage() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link href="/methodology" className="hidden sm:block">
-            <Button variant="ghost" size="sm">
-              Methodology
-            </Button>
+          <Link href="/methodology" className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 text-[color:var(--gs-text-muted)] hover:bg-black/5 px-3 py-1.5 text-xs">
+            Methodology
           </Link>
-          <Link href="/quiz">
-            <Button size="sm">Take the quiz</Button>
+          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-3 py-1.5 text-xs">
+            Take the quiz
           </Link>
         </div>
-      </div>
+      </nav>
 
       {/* Header */}
       <div className="mx-auto mt-10 max-w-2xl space-y-3 text-center">
@@ -88,8 +86,8 @@ export default function LearnPage() {
           Want to see how you stack up?
         </p>
         <div className="mt-3">
-          <Link href="/quiz">
-            <Button>Take the GreenScore quiz</Button>
+          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-5 py-2.5 text-sm">
+            Take the GreenScore quiz
           </Link>
         </div>
       </div>

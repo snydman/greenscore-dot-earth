@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getRateLimitKey } from "../../../lib/rate-limit";
 
 /**
  * Local insights API — takes a zip code and returns:
@@ -108,6 +109,16 @@ async function fetchSolarPotential(lat: number, lng: number): Promise<SolarResul
 // ── Main handler ──
 
 export async function GET(request: NextRequest) {
+  // Rate limit: 10 requests per minute per IP
+  const rlKey = getRateLimitKey(request, "local-insights");
+  const rl = checkRateLimit(rlKey, { maxRequests: 10, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   const zip = (request.nextUrl.searchParams.get("zip") ?? "").trim();
 
   if (!/^\d{5}$/.test(zip)) {

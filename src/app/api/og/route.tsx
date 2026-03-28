@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   const heating = searchParams.get("h") ?? "–";
   const invest = searchParams.get("i") ?? "–";
 
-  const pct = Number(score);
+  const pct = Number(score) || 0;
   const label = pct >= 70 ? "Strong" : pct >= 40 ? "Moderate" : "Needs attention";
   const ringColor = pct >= 70 ? "#059669" : pct >= 40 ? "#d97706" : "#dc2626";
 
@@ -155,6 +155,9 @@ export async function GET(request: NextRequest) {
     {
       width: 1200,
       height: 630,
+      headers: {
+        "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      },
     },
   );
 }

@@ -1,5 +1,4 @@
 import {
-  BANKS,
   BANK_CATEGORIES,
   type BankGreenRating,
   type BankCategory,
@@ -37,7 +36,7 @@ export type MultiBankScoreResult = {
 };
 
 function weightedAverage(scores: number[]): number {
-  if (scores.length === 0) return 10;
+  if (scores.length === 0) return 9;
   if (scores.length === 1) return scores[0];
   const PRIMARY_WEIGHT = 0.6;
   const secondaryWeight = 0.4 / (scores.length - 1);
@@ -85,21 +84,6 @@ export function scoreBanking(
     };
   }
 
-  // Try curated bank list as fallback
-  if (bankSlug) {
-    const bank = BANKS.find((b) => b.slug === bankSlug);
-    if (bank) {
-      return {
-        points: RATING_POINTS[bank.rating],
-        maxPoints: 18,
-        bankName: bank.name,
-        rating: bank.rating,
-        source: "curated",
-        explanation: RATING_LABELS[bank.rating],
-      };
-    }
-  }
-
   // Fall back to category
   if (category) {
     const cat = BANK_CATEGORIES.find((c) => c.value === category);
@@ -117,7 +101,7 @@ export function scoreBanking(
 
   // No bank info at all
   return {
-    points: 10,
+    points: 9,
     maxPoints: 18,
     bankName: "Unknown",
     rating: "ok",

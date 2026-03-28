@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BANKS, type BankEntry, type BankGreenRating } from "../lib/data/banks";
+import { type BankEntry, type BankGreenRating } from "../lib/data/banks";
 
 type BankTypeaheadProps = {
   value: string;
@@ -24,11 +24,6 @@ function isValidRating(r: string): r is BankGreenRating {
   return VALID_RATINGS.has(r);
 }
 
-/** Search the static fallback list */
-function searchStatic(query: string): BankEntry[] {
-  return BANKS.filter((b) => b.name.toLowerCase().includes(query)).slice(0, 10);
-}
-
 export default function BankTypeahead({
   value,
   onChange,
@@ -45,22 +40,20 @@ export default function BankTypeahead({
 
   const query = value.trim().toLowerCase();
 
-  // Debounced search: try Bank.Green API, fall back to static list
+  // Debounced search via Bank.Green API
   useEffect(() => {
     if (query.length < 2) {
       setMatches([]);
       return;
     }
 
-    // Show static matches immediately while API loads
-    setMatches(searchStatic(query));
+    setLoading(true);
 
     const timer = setTimeout(async () => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      setLoading(true);
       try {
         const res = await fetch(
           `/api/bank-green?q=${encodeURIComponent(query)}`,
@@ -69,22 +62,30 @@ export default function BankTypeahead({
         if (!res.ok) throw new Error("API error");
 
         const data = await res.json();
-        const apiResults: BankEntry[] = (data.banks ?? [])
+        // Deduplicate by bank name (API can return the same bank
+        // under different tags)
+        const seenNames = new Set<string>();
+        const results: BankEntry[] = (data.banks ?? [])
           .filter((b: { rating: string }) => isValidRating(b.rating))
           .map((b: { name: string; tag: string; rating: string }) => ({
             slug: b.tag,
             name: b.name,
             rating: b.rating as BankGreenRating,
-          }));
+          }))
+          .filter((b: BankEntry) => {
+            const key = b.name.toLowerCase();
+            if (seenNames.has(key)) return false;
+            seenNames.add(key);
+            return true;
+          });
 
         if (!controller.signal.aborted) {
-          // Merge: API results first, then static-only entries not already present
-          const apiTags = new Set(apiResults.map((b) => b.slug));
-          const staticOnly = searchStatic(query).filter((b) => !apiTags.has(b.slug));
-          setMatches([...apiResults, ...staticOnly].slice(0, 15));
+          setMatches(results.slice(0, 15));
         }
       } catch {
-        // On error or abort, keep the static matches already shown
+        if (!controller.signal.aborted) {
+          setMatches([]);
+        }
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -146,6 +147,7 @@ export default function BankTypeahead({
   return (
     <div ref={wrapperRef} className="relative">
       <input
+        id="bank-search"
         type="text"
         className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
         placeholder="Start typing your bank name…"

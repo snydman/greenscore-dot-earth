@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ARTICLES, getArticle, categoryLabel } from "../../../lib/data/articles";
-import { Button } from "../../../components/ui";
 
 const CATEGORY_COLORS: Record<string, string> = {
   banking: "bg-emerald-50 text-emerald-800 ring-emerald-200/60",
@@ -64,9 +63,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   });
 
   return (
-    <main className="gs-container py-10 sm:py-14">
+    <main id="main-content" className="gs-container py-10 sm:py-14">
       {/* Nav */}
-      <div className="flex items-center justify-between">
+      <nav aria-label="Main navigation" className="flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-2">
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
             G
@@ -75,16 +74,14 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link href="/learn">
-            <Button variant="ghost" size="sm">
-              All articles
-            </Button>
+          <Link href="/learn" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 text-[color:var(--gs-text-muted)] hover:bg-black/5 px-3 py-1.5 text-xs">
+            All articles
           </Link>
-          <Link href="/quiz">
-            <Button size="sm">Take the quiz</Button>
+          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-3 py-1.5 text-xs">
+            Take the quiz
           </Link>
         </div>
-      </div>
+      </nav>
 
       {/* Article */}
       <article className="mx-auto mt-10 max-w-2xl">
@@ -111,7 +108,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         <div
           className="mt-8 space-y-0 text-sm leading-relaxed text-[color:var(--gs-text-main)] [&_h2]:leading-tight [&_h3]:leading-tight [&_li]:mb-1 [&_p]:mb-4 [&_strong]:text-slate-900 [&_ul]:mb-4 [&_ul]:space-y-1"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(article.content) }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(article.content.replace(/<[^>]*>/g, "")) }}
         />
 
         {/* CTA */}
@@ -123,8 +120,8 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             Take the GreenScore quiz — it&apos;s free, private, and takes 5 minutes.
           </p>
           <div className="mt-4">
-            <Link href="/quiz">
-              <Button>Start the quiz</Button>
+            <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-5 py-2.5 text-sm">
+              Start the quiz
             </Link>
           </div>
         </div>

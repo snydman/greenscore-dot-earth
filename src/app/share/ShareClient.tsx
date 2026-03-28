@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card } from "../../components/ui";
+import { Card } from "../../components/ui";
 
 type Props = {
   score: number;
@@ -16,7 +16,7 @@ export default function ShareClient({ score, bank, transport, heating, invest, a
   const label = score >= 70 ? "Strong" : score >= 40 ? "Moderate — room to grow" : "Needs attention";
 
   return (
-    <main className="gs-container py-10 sm:py-12">
+    <main id="main-content" className="gs-container py-10 sm:py-12">
       <div className="mx-auto max-w-lg">
         <Card className="flex flex-col items-center gap-6 text-center">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
@@ -53,8 +53,8 @@ export default function ShareClient({ score, bank, transport, heating, invest, a
             ))}
           </div>
 
-          <Link href="/quiz">
-            <Button variant="primary">Take the quiz and compare</Button>
+          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-5 py-2.5 text-sm">
+            Take the quiz and compare
           </Link>
 
           <p className="text-xs text-slate-400">
