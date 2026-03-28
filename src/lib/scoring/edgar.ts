@@ -237,11 +237,12 @@ function exposureToScore(exposurePct: number): { score: number; grade: string } 
   // 0% fossil → 40/40, ≥20% fossil → 0/40, linear in between
   const score = Math.max(0, Math.min(40, Math.round(40 * (1 - exposurePct / 20))));
 
+  // Grade based on score so the letter matches the number intuitively
   let grade: string;
-  if (exposurePct <= 1) grade = "A";
-  else if (exposurePct <= 3) grade = "B";
-  else if (exposurePct <= 7) grade = "C";
-  else if (exposurePct <= 15) grade = "D";
+  if (score >= 36) grade = "A";
+  else if (score >= 30) grade = "B";
+  else if (score >= 22) grade = "C";
+  else if (score >= 14) grade = "D";
   else grade = "F";
 
   return { score, grade };
