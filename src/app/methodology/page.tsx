@@ -1,22 +1,9 @@
-import Link from "next/link";
+import SiteNav from "../../components/SiteNav";
 
 export default function MethodologyPage() {
   return (
     <main id="main-content" className="gs-container py-10 sm:py-14">
-      <nav aria-label="Main navigation" className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
-        >
-          &larr; Home
-        </Link>
-        <Link
-          href="/results"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
-        >
-          Your results &rarr;
-        </Link>
-      </nav>
+      <SiteNav />
 
       <div className="mx-auto mt-8 max-w-2xl space-y-10">
         <div className="space-y-3">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ARTICLES, getArticle, categoryLabel } from "../../../lib/data/articles";
+import SiteNav from "../../../components/SiteNav";
 
 const CATEGORY_COLORS: Record<string, string> = {
   banking: "bg-emerald-50 text-emerald-800 ring-emerald-200/60",
@@ -64,24 +65,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
   return (
     <main id="main-content" className="gs-container py-10 sm:py-14">
-      {/* Nav */}
-      <nav aria-label="Main navigation" className="flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
-            G
-          </span>
-          <span className="text-sm font-semibold tracking-tight">GreenScore</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Link href="/learn" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 text-[color:var(--gs-text-muted)] hover:bg-black/5 px-3 py-1.5 text-xs">
-            All articles
-          </Link>
-          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-3 py-1.5 text-xs">
-            Take the quiz
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Article */}
       <article className="mx-auto mt-10 max-w-2xl">

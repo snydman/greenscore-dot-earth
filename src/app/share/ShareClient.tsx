@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "../../components/ui";
+import SiteNav from "../../components/SiteNav";
 
 type Props = {
   score: number;
@@ -17,7 +18,8 @@ export default function ShareClient({ score, bank, transport, heating, invest, a
 
   return (
     <main id="main-content" className="gs-container py-10 sm:py-12">
-      <div className="mx-auto max-w-lg">
+      <SiteNav />
+      <div className="mx-auto mt-8 max-w-lg">
         <Card className="flex flex-col items-center gap-6 text-center">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             I scored {score}/100 on GreenScore

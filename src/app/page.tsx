@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Card } from "../components/ui";
+import SiteNav from "../components/SiteNav";
 
 const CATEGORIES = [
   {
@@ -83,27 +84,7 @@ function HeroVisual() {
 export default function HomePage() {
   return (
     <main id="main-content" className="gs-container pb-16 pt-10 sm:pt-14">
-      {/* Top nav */}
-      <nav aria-label="Main navigation" className="flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
-            G
-          </span>
-          <span className="text-sm font-semibold tracking-tight">GreenScore</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Link href="/learn" className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 text-[color:var(--gs-text-muted)] hover:bg-black/5 px-3 py-1.5 text-xs">
-            Learn
-          </Link>
-          <Link href="/methodology" className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/25 text-[color:var(--gs-text-muted)] hover:bg-black/5 px-3 py-1.5 text-xs">
-            Methodology
-          </Link>
-          <Link href="/quiz" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-3 py-1.5 text-xs">
-            Take the quiz
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       {/* Hero */}
       <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-center">

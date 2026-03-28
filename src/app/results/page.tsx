@@ -12,6 +12,7 @@ import { getRecommendations } from "../../lib/scoring/recommendations";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Card } from "../../components/ui";
+import SiteNav from "../../components/SiteNav";
 
 type BankEntry = {
   bankSlug: string | null;
@@ -341,6 +342,7 @@ export default function ResultsPage() {
   if (!saved) {
     return (
       <main id="main-content" className="gs-container py-10 sm:py-12">
+        <SiteNav />
         <div className="mx-auto mt-20 max-w-md text-center">
           <Card className="flex flex-col items-center gap-4 px-8 py-10">
             <h1 className="text-xl font-semibold tracking-tight">No results yet</h1>
@@ -359,15 +361,7 @@ export default function ResultsPage() {
   return (
     <main id="main-content" className="gs-container py-10 sm:py-12">
 
-      <nav aria-label="Results navigation" className="flex items-center justify-between text-xs sm:text-sm text-[color:var(--gs-text-muted)]">
-        <Link
-          href="/quiz"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
-        >
-          ← Back to quiz
-        </Link>
-        <span className="text-[0.7rem]">Banking, transport, heating, air travel + investments scored from live data.</span>
-      </nav>
+      <SiteNav />
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
         <Card className="flex flex-col items-center gap-6 text-center">
