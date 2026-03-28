@@ -13,6 +13,7 @@ import { startPrescore } from "../../lib/scoring/prescore";
 import VehicleSelector from "../../components/VehicleSelector";
 import type { TransportQuizData } from "../../lib/scoring/transport";
 import type { HeatingType } from "../../lib/scoring/heating";
+import type { AirTravelTier } from "../../lib/scoring/air-travel";
 
 type BankQuizEntry = {
   id: string;
@@ -34,9 +35,11 @@ type QuizState = {
   vehicles: VehicleQuizEntry[];
   heating: HeatingType | "";
   heatingState: string;
+  airTravel: AirTravelTier | "";
+  zipCode: string;
 };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 export default function QuizPage() {
   const router = useRouter();
@@ -54,6 +57,8 @@ export default function QuizPage() {
     vehicles: [],
     heating: "",
     heatingState: "",
+    airTravel: "",
+    zipCode: "",
   });
 
   const isFirst = step === 1;
@@ -72,6 +77,10 @@ export default function QuizPage() {
         return data.vehicles.length > 0;
       case 5:
         return !!data.heating;
+      case 6:
+        return !!data.airTravel;
+      case 7:
+        return true; // zip code is optional
       default:
         return false;
     }
@@ -84,7 +93,7 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 5,
+        version: 6,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
@@ -97,6 +106,8 @@ export default function QuizPage() {
           vehicles: data.vehicles.map((v) => v.transport),
           heating: data.heating || null,
           heatingState: data.heatingState || null,
+          airTravel: data.airTravel || null,
+          zipCode: data.zipCode || null,
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -161,16 +172,30 @@ export default function QuizPage() {
       </header>
 
       <div className="mx-auto mt-8 w-full max-w-3xl">
+        {step === 1 && (
+          <div className="mb-4 rounded-2xl border border-emerald-200/60 bg-emerald-50/40 px-5 py-4 text-sm leading-relaxed text-slate-700">
+            <p className="font-semibold text-slate-900">Why these five areas?</p>
+            <p className="mt-1">
+              Your bank, car, home heating, air travel, and investments together
+              drive a surprisingly large share of your personal carbon
+              footprint — often more than everyday habits like recycling or
+              diet. Focusing here gives you the highest leverage for change.
+            </p>
+          </div>
+        )}
+
         <Card className="space-y-6">
           <StepProgress current={step} total={TOTAL_STEPS} />
 
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
               {step === 1 && "Your banking"}
-              {step === 2 && "Do you know your fund tickers?"}
+              {step === 2 && "Your investments"}
               {step === 3 && "List any tickers you know"}
               {step === 4 && "Your vehicles"}
               {step === 5 && "Your home heating"}
+              {step === 6 && "Air travel"}
+              {step === 7 && "Where do you live?"}
             </h1>
             <p className="text-sm text-slate-600">
               Directional answers are fine — this is a snapshot, not a full diagnostic.
@@ -300,7 +325,7 @@ export default function QuizPage() {
             {step === 2 && (
               <div className="space-y-3 text-left">
                 <p className="text-sm font-medium">
-                  Do you know the ticker symbols for any funds or stocks you hold?
+                  Do you know the ticker symbols for any mutual funds or ETFs you hold?
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
@@ -332,7 +357,7 @@ export default function QuizPage() {
 
             {step === 3 && data.knowsTickers && (
               <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">Enter any fund or stock tickers you know</label>
+                <label className="text-sm font-medium">Enter any mutual fund or ETF tickers you know</label>
                 <textarea
                   rows={3}
                   className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
@@ -484,6 +509,85 @@ export default function QuizPage() {
 
                 <p className="text-xs text-slate-500">
                   Heating accounts for the largest share of home energy use and emissions.
+                </p>
+              </div>
+            )}
+
+            {step === 6 && (
+              <div className="space-y-4 text-left">
+                <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">
+                  <p className="font-semibold text-slate-800">Did you know?</p>
+                  <p className="mt-1">
+                    A single round-trip flight from New York to Los Angeles produces about
+                    1 tonne of CO₂ — roughly the same as 3 months of average driving. This
+                    isn&apos;t about guilt — it&apos;s about understanding where your footprint comes from.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Roughly how many round-trip flights do you take per year?
+                  </label>
+                  <select
+                    className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                    value={data.airTravel}
+                    onChange={(e) => setData((prev) => ({ ...prev, airTravel: e.target.value as AirTravelTier | "" }))}
+                  >
+                    <option value="">Select one</option>
+                    <option value="none">I don&apos;t fly</option>
+                    <option value="rare">1–2 flights</option>
+                    <option value="moderate">3–5 flights</option>
+                    <option value="frequent">6–10 flights</option>
+                    <option value="very_frequent">11+ flights</option>
+                    <option value="not_sure">Not sure</option>
+                  </select>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  This is for awareness — your air travel score is weighted lightly compared to other categories.
+                </p>
+              </div>
+            )}
+
+            {step === 7 && (
+              <div className="space-y-4 text-left">
+                <div className="rounded-2xl border border-violet-200/60 bg-violet-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">
+                  <p className="font-semibold text-slate-800">Why zip code?</p>
+                  <p className="mt-1">
+                    Your zip code helps us show you local insights — like how clean your
+                    electric grid is, how many EV chargers are near you, and whether solar
+                    makes sense for your area. We never store your location.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    What&apos;s your zip code? <span className="font-normal text-slate-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                    placeholder="e.g. 02138"
+                    value={data.zipCode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 5);
+                      setData((prev) => ({ ...prev, zipCode: val }));
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                  onClick={() => setData((prev) => ({ ...prev, zipCode: "" }))}
+                >
+                  I&apos;d rather not say
+                </button>
+
+                <p className="text-xs text-slate-500">
+                  Sharing your zip code unlocks local EV charging data, solar potential, and grid cleanliness insights.
                 </p>
               </div>
             )}
