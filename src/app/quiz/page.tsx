@@ -13,6 +13,7 @@ import { startPrescore } from "../../lib/scoring/prescore";
 import VehicleSelector from "../../components/VehicleSelector";
 import type { TransportQuizData } from "../../lib/scoring/transport";
 import type { HeatingType } from "../../lib/scoring/heating";
+import type { AirTravelTier } from "../../lib/scoring/air-travel";
 
 type BankQuizEntry = {
   id: string;
@@ -34,9 +35,11 @@ type QuizState = {
   vehicles: VehicleQuizEntry[];
   heating: HeatingType | "";
   heatingState: string;
+  airTravel: AirTravelTier | "";
+  zipCode: string;
 };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 7;
 
 export default function QuizPage() {
   const router = useRouter();
@@ -54,24 +57,56 @@ export default function QuizPage() {
     vehicles: [],
     heating: "",
     heatingState: "",
+    airTravel: "",
+    zipCode: "",
   });
 
   const isFirst = step === 1;
   const isLast = step === TOTAL_STEPS;
 
+  // Auto-derive state from zip code via Zippopotam.us
+  const [zipDerivedState, setZipDerivedState] = useState<string>("");
+
+  function handleZipChange(val: string) {
+    const clean = val.replace(/\D/g, "").slice(0, 5);
+    setData((prev) => ({ ...prev, zipCode: clean }));
+
+    if (clean.length === 5) {
+      fetch(`https://api.zippopotam.us/us/${clean}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((json) => {
+          const st = json?.places?.[0]?.["state abbreviation"] ?? "";
+          if (st) {
+            setZipDerivedState(st);
+            setData((prev) => ({
+              ...prev,
+              heatingState: prev.heatingState || st,
+            }));
+          }
+        })
+        .catch(() => {});
+    } else {
+      setZipDerivedState("");
+    }
+  }
+
   const canGoNext = useMemo(() => {
     switch (step) {
       case 1:
-        return data.banks.length > 0;
+        return true; // zip code is optional
       case 2:
-        return data.knowsTickers !== null;
+        return data.banks.length > 0;
       case 3:
+        return data.knowsTickers !== null;
+      case 4:
         if (data.knowsTickers) return data.tickers.trim().length > 0;
         return true;
-      case 4:
-        return data.vehicles.length > 0;
       case 5:
+        return data.vehicles.length > 0;
+      case 6:
         return !!data.heating;
+      case 7:
+        return !!data.airTravel;
       default:
         return false;
     }
@@ -84,7 +119,7 @@ export default function QuizPage() {
   function handleNext() {
     if (isLast) {
       const payload = {
-        version: 5,
+        version: 6,
         savedAt: new Date().toISOString(),
         answers: {
           tickers: data.knowsTickers ? data.tickers : "",
@@ -97,6 +132,8 @@ export default function QuizPage() {
           vehicles: data.vehicles.map((v) => v.transport),
           heating: data.heating || null,
           heatingState: data.heatingState || null,
+          airTravel: data.airTravel || null,
+          zipCode: data.zipCode || null,
         },
       };
       localStorage.setItem("greenscore.answers.v1", JSON.stringify(payload));
@@ -105,8 +142,8 @@ export default function QuizPage() {
     }
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS));
 
-    // Pre-score tickers in the background when leaving step 3
-    if (step === 3 && data.knowsTickers && data.tickers.trim()) {
+    // Pre-score tickers in the background when leaving step 4
+    if (step === 4 && data.knowsTickers && data.tickers.trim()) {
       prescoreRef.current?.abort();
       prescoreRef.current = startPrescore(parseTickers(data.tickers));
     }
@@ -161,16 +198,38 @@ export default function QuizPage() {
       </header>
 
       <div className="mx-auto mt-8 w-full max-w-3xl">
+        {step === 1 && (
+          <div className="mb-4 rounded-2xl border border-emerald-200/60 bg-emerald-50/40 px-5 py-4 text-sm leading-relaxed text-slate-700">
+            <p className="font-semibold text-slate-900">Why these five areas?</p>
+            <p className="mt-1">
+              Your bank, car, home heating, air travel, and investments together
+              drive a surprisingly large share of your personal carbon
+              footprint — often more than everyday habits like recycling or
+              diet. Focusing here gives you the highest leverage for change.
+            </p>
+          </div>
+        )}
+        {step === 2 && data.banks.length === 0 && (
+          <div className="mb-4 rounded-2xl border border-emerald-200/60 bg-emerald-50/40 px-5 py-4 text-sm leading-relaxed text-slate-700">
+            <p className="mt-0">
+              Where you keep your money matters. Banks use deposits to fund
+              everything from renewable energy to fossil fuel extraction.
+            </p>
+          </div>
+        )}
+
         <Card className="space-y-6">
           <StepProgress current={step} total={TOTAL_STEPS} />
 
           <div className="space-y-1">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {step === 1 && "Your banking"}
-              {step === 2 && "Do you know your fund tickers?"}
-              {step === 3 && "List any tickers you know"}
-              {step === 4 && "Your vehicles"}
-              {step === 5 && "Your home heating"}
+              {step === 1 && "Where do you live?"}
+              {step === 2 && "Your banking"}
+              {step === 3 && "Your investments"}
+              {step === 4 && "List any tickers you know"}
+              {step === 5 && "Your vehicles"}
+              {step === 6 && "Your home heating"}
+              {step === 7 && "Air travel"}
             </h1>
             <p className="text-sm text-slate-600">
               Directional answers are fine — this is a snapshot, not a full diagnostic.
@@ -179,6 +238,55 @@ export default function QuizPage() {
 
           <div className="space-y-4">
             {step === 1 && (
+              <div className="space-y-4 text-left">
+                <div className="rounded-2xl border border-violet-200/60 bg-violet-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">
+                  <p className="font-semibold text-slate-800">Why zip code?</p>
+                  <p className="mt-1">
+                    Your zip code helps us show you local insights — like how clean your
+                    electric grid is, how many EV chargers are near you, and whether solar
+                    makes sense for your area. It also helps us adjust your heating score.
+                    We never store your location.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    What&apos;s your zip code? <span className="font-normal text-slate-500">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                    placeholder="e.g. 02138"
+                    value={data.zipCode}
+                    onChange={(e) => handleZipChange(e.target.value)}
+                  />
+                  {zipDerivedState && (
+                    <p className="text-xs text-emerald-700">
+                      Got it — {zipDerivedState}. We&apos;ll use this for your grid and local insights.
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                  onClick={() => {
+                    setData((prev) => ({ ...prev, zipCode: "" }));
+                    setZipDerivedState("");
+                  }}
+                >
+                  I&apos;d rather not say
+                </button>
+
+                <p className="text-xs text-slate-500">
+                  Sharing your zip code unlocks local EV charging data, solar potential, and grid cleanliness insights.
+                </p>
+              </div>
+            )}
+
+            {step === 2 && (
               <div className="space-y-3 text-left">
                 {/* List of added banks */}
                 {data.banks.length > 0 && (
@@ -297,10 +405,10 @@ export default function QuizPage() {
               </div>
             )}
 
-            {step === 2 && (
+            {step === 3 && (
               <div className="space-y-3 text-left">
                 <p className="text-sm font-medium">
-                  Do you know the ticker symbols for any funds or stocks you hold?
+                  Do you know the ticker symbols for any mutual funds or ETFs you hold?
                 </p>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
@@ -330,9 +438,9 @@ export default function QuizPage() {
               </div>
             )}
 
-            {step === 3 && data.knowsTickers && (
+            {step === 4 && data.knowsTickers && (
               <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">Enter any fund or stock tickers you know</label>
+                <label className="text-sm font-medium">Enter any mutual fund or ETF tickers you know</label>
                 <textarea
                   rows={3}
                   className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
@@ -350,13 +458,13 @@ export default function QuizPage() {
               </div>
             )}
 
-            {step === 3 && !data.knowsTickers && (
+            {step === 4 && !data.knowsTickers && (
               <p className="text-sm text-slate-700">
                 No problem — we&apos;ll treat your investments as a diversified mix for now.
               </p>
             )}
 
-            {step === 4 && (
+            {step === 5 && (
               <div className="space-y-3 text-left">
                 {/* List of added vehicles */}
                 {data.vehicles.length > 0 && (
@@ -439,7 +547,7 @@ export default function QuizPage() {
               </div>
             )}
 
-            {step === 5 && (
+            {step === 6 && (
               <div className="space-y-4 text-left">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">How is your home mostly heated?</label>
@@ -461,24 +569,45 @@ export default function QuizPage() {
 
                 {(data.heating === "heat_pump" || data.heating === "electric_resistance") && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">
-                      What state do you live in? <span className="font-normal text-slate-500">(optional)</span>
-                    </label>
-                    <p className="text-xs text-slate-500">
-                      Electric heating is only as clean as your grid. We use EPA eGRID data to adjust your score.
-                    </p>
-                    <select
-                      className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
-                      value={data.heatingState}
-                      onChange={(e) => setData((prev) => ({ ...prev, heatingState: e.target.value }))}
-                    >
-                      <option value="">Skip — use national average</option>
-                      {STATE_LIST.map((s) => (
-                        <option key={s.code} value={s.code}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                    {zipDerivedState ? (
+                      <>
+                        <p className="text-xs text-emerald-700">
+                          Using your zip code, we know you&apos;re in <strong>{zipDerivedState}</strong>.
+                          We&apos;ll use EPA eGRID data for your state&apos;s grid to adjust your score.
+                        </p>
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                          onClick={() => {
+                            setData((prev) => ({ ...prev, heatingState: "" }));
+                            setZipDerivedState("");
+                          }}
+                        >
+                          Use a different state
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <label className="text-sm font-medium">
+                          What state do you live in? <span className="font-normal text-slate-500">(optional)</span>
+                        </label>
+                        <p className="text-xs text-slate-500">
+                          Electric heating is only as clean as your grid. We use EPA eGRID data to adjust your score.
+                        </p>
+                        <select
+                          className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                          value={data.heatingState}
+                          onChange={(e) => setData((prev) => ({ ...prev, heatingState: e.target.value }))}
+                        >
+                          <option value="">Skip — use national average</option>
+                          {STATE_LIST.map((s) => (
+                            <option key={s.code} value={s.code}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -487,6 +616,43 @@ export default function QuizPage() {
                 </p>
               </div>
             )}
+
+            {step === 7 && (
+              <div className="space-y-4 text-left">
+                <div className="rounded-2xl border border-blue-200/60 bg-blue-50/40 px-4 py-3 text-xs leading-relaxed text-slate-600">
+                  <p className="font-semibold text-slate-800">Did you know?</p>
+                  <p className="mt-1">
+                    A single round-trip flight from New York to Los Angeles produces about
+                    1 tonne of CO₂ — roughly the same as 3 months of average driving. This
+                    isn&apos;t about guilt — it&apos;s about understanding where your footprint comes from.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Roughly how many round-trip flights do you take per year?
+                  </label>
+                  <select
+                    className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
+                    value={data.airTravel}
+                    onChange={(e) => setData((prev) => ({ ...prev, airTravel: e.target.value as AirTravelTier | "" }))}
+                  >
+                    <option value="">Select one</option>
+                    <option value="none">I don&apos;t fly</option>
+                    <option value="rare">1–2 flights</option>
+                    <option value="moderate">3–5 flights</option>
+                    <option value="frequent">6–10 flights</option>
+                    <option value="very_frequent">11+ flights</option>
+                    <option value="not_sure">Not sure</option>
+                  </select>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  This is for awareness — your air travel score is weighted lightly compared to other categories.
+                </p>
+              </div>
+            )}
+
           </div>
 
           <div className="mt-2 flex items-center justify-between border-t border-black/5 pt-4">

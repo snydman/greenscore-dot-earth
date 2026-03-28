@@ -6,6 +6,7 @@ import { scoreBanks, type MultiBankScoreResult } from "../../lib/scoring/banking
 import type { BankCategory } from "../../lib/data/banks";
 import { scoreVehicles, type MultiTransportScoreResult, type TransportQuizData } from "../../lib/scoring/transport";
 import { scoreHeating, type HeatingScoreResult, type HeatingType } from "../../lib/scoring/heating";
+import { scoreAirTravel, type AirTravelScoreResult, type AirTravelTier } from "../../lib/scoring/air-travel";
 import { getCached, writeOne, getActivePrescore } from "../../lib/scoring/score-cache";
 import { getRecommendations } from "../../lib/scoring/recommendations";
 import Link from "next/link";
@@ -30,6 +31,9 @@ type SavedPayload = {
     // v5 heating
     heating?: HeatingType | null;
     heatingState?: string | null;
+    // v6 air travel + zip
+    airTravel?: AirTravelTier | null;
+    zipCode?: string | null;
     // v3 singular (for backward compat)
     bankSlug?: string | null;
     bankDisplayName?: string;
@@ -75,6 +79,19 @@ export default function ResultsPage() {
   const [showAllInvestmentDetails, setShowAllInvestmentDetails] = useState(false);
   const [factors, setFactors] = useState<InvestmentFactor[]>([]);
   const [scoringDone, setScoringDone] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [actionPlan, setActionPlan] = useState<string | null>(null);
+  const [actionPlanLoading, setActionPlanLoading] = useState(false);
+  const [actionPlanError, setActionPlanError] = useState<string | null>(null);
+
+  type LocalInsights = {
+    zip: string;
+    state: string;
+    evChargers: { totalFound: number; radiusMiles: number; nearestDistance?: number; sampleLocations: Array<{ name: string; distance: number }> } | null;
+    solar: { annualKwh: number; capacityKw: number; solarResourceDaily: number; message: string } | null;
+  };
+  const [localInsights, setLocalInsights] = useState<LocalInsights | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -128,6 +145,24 @@ export default function ResultsPage() {
   // Score heating (synchronous — static data)
   const heatingResult: HeatingScoreResult = useMemo(() => {
     return scoreHeating(saved?.answers.heating, saved?.answers.heatingState);
+  }, [saved]);
+
+  // Score air travel (synchronous — tier-based)
+  const airTravelResult: AirTravelScoreResult = useMemo(() => {
+    return scoreAirTravel(saved?.answers.airTravel);
+  }, [saved]);
+
+  // Fetch local insights when zip code is available
+  useEffect(() => {
+    const zip = saved?.answers.zipCode;
+    if (!zip || zip.length !== 5) return;
+
+    setLocalLoading(true);
+    fetch(`/api/local-insights?zip=${encodeURIComponent(zip)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data) setLocalInsights(data); })
+      .catch(() => {})
+      .finally(() => setLocalLoading(false));
   }, [saved]);
 
   // Score tickers: check prescore cache first, then fetch uncached ones live
@@ -208,13 +243,88 @@ export default function ResultsPage() {
     const investPts = scoringDone || tickers.length === 0 ? investmentScore.points : 0;
     const transportPts = transportResult.points;
     const heatingPts = heatingResult.points;
-    const totalPoints = bankPts + investPts + transportPts + heatingPts;
-    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints + heatingResult.maxPoints; // 20 + 40 + 20 + 20 = 100
+    const airTravelPts = airTravelResult.points;
+    const totalPoints = bankPts + investPts + transportPts + heatingPts + airTravelPts;
+    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints + heatingResult.maxPoints + airTravelResult.maxPoints; // 20 + 40 + 20 + 20 + 10 = 110
     const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
     return { totalPoints, maxPoints, pct };
-  }, [bankResult, investmentScore, transportResult, heatingResult, scoringDone, tickers.length]);
+  }, [bankResult, investmentScore, transportResult, heatingResult, airTravelResult, scoringDone, tickers.length]);
 
   const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
+
+  const shareUrl = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const params = new URLSearchParams({
+      s: String(overallScore.pct),
+      b: String(bankResult.points),
+      t: String(transportResult.points),
+      h: String(heatingResult.points),
+      i: String(investmentScore.points),
+      a: String(airTravelResult.points),
+    });
+    return `${window.location.origin}/share?${params.toString()}`;
+  }, [overallScore.pct, bankResult.points, transportResult.points, heatingResult.points, investmentScore.points, airTravelResult.points]);
+
+  function handleShare() {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  async function fetchActionPlan() {
+    if (!saved) return;
+    setActionPlanLoading(true);
+    setActionPlanError(null);
+
+    const vehicleDescriptions = (saved.answers.vehicles ?? []).map((v) => {
+      if (v.type === "vehicle") return `${v.year} ${v.make} ${v.model} (${v.co2Gpm} g CO2/mile, ${v.fuelType})`;
+      if (v.type === "none") return "No car";
+      return "Not sure";
+    });
+
+    try {
+      const res = await fetch("/api/action-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          overallScore: overallScore.pct,
+          maxScore: 100,
+          bankScore: bankResult.points,
+          bankMax: bankResult.maxPoints,
+          transportScore: transportResult.points,
+          transportMax: transportResult.maxPoints,
+          heatingScore: heatingResult.points,
+          heatingMax: heatingResult.maxPoints,
+          airTravelScore: airTravelResult.points,
+          airTravelMax: airTravelResult.maxPoints,
+          airTravelTier: airTravelResult.tierLabel,
+          investScore: investmentScore.points,
+          investMax: investmentScore.maxPoints,
+          bankNames: (saved.answers.banks ?? []).map((b) => b.bankDisplayName),
+          vehicleDescriptions,
+          heatingType: saved.answers.heating ?? null,
+          heatingState: saved.answers.heatingState ?? null,
+          tickers: saved.answers.tickers ?? "",
+          zipCode: saved.answers.zipCode ?? null,
+          evChargersNearby: localInsights?.evChargers?.totalFound ?? null,
+          solarPotentialKwh: localInsights?.solar?.annualKwh ?? null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      setActionPlan(data.plan);
+    } catch (e) {
+      setActionPlanError(e instanceof Error ? e.message : "Failed to generate action plan");
+    } finally {
+      setActionPlanLoading(false);
+    }
+  }
 
   const recommendations = useMemo(() => {
     if (!saved) return [];
@@ -238,7 +348,7 @@ export default function ResultsPage() {
         >
           ← Back to quiz
         </Link>
-        <span className="text-[0.7rem]">Banking, transport, heating + investments scored from live data.</span>
+        <span className="text-[0.7rem]">Banking, transport, heating, air travel + investments scored from live data.</span>
       </header>
 
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1.6fr),minmax(0,1.4fr)] md:items-start">
@@ -248,7 +358,7 @@ export default function ResultsPage() {
               Your GreenScore
             </h1>
             <p className="text-xs text-[color:var(--gs-text-muted)]">
-              Based on your banking, transport, heating, and investment choices.
+              Based on your banking, transport, heating, air travel, and investment choices.
             </p>
           </div>
 
@@ -271,7 +381,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + heating ({heatingResult.points}/{heatingResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + heating ({heatingResult.points}/{heatingResult.maxPoints}) + air travel ({airTravelResult.points}/{airTravelResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -285,6 +395,9 @@ export default function ResultsPage() {
                 Methodology
               </Button>
             </Link>
+            <Button variant="secondary" size="sm" onClick={handleShare}>
+              {copied ? "Link copied!" : "Share results"}
+            </Button>
           </div>
         </Card>
 
@@ -409,6 +522,91 @@ export default function ResultsPage() {
             </div>
           </Card>
 
+          {/* ── Air Travel Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Air Travel (awareness)
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                Air travel score: {airTravelResult.points} / {airTravelResult.maxPoints}
+              </div>
+              <span className="gs-chip">{airTravelResult.tierLabel}</span>
+            </div>
+            <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+              <div className="text-sm text-slate-700">{airTravelResult.explanation}</div>
+              <div className="mt-2 rounded-xl bg-blue-50/60 px-3 py-2 text-xs text-blue-800">
+                <span className="font-semibold">Did you know?</span> {airTravelResult.didYouKnow}
+              </div>
+            </div>
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">ICAO emissions factors</span> — scored gently for awareness
+            </div>
+          </Card>
+
+          {/* ── Local Insights Card ── */}
+          {(localLoading || (localInsights && (localInsights.evChargers || localInsights.solar))) && (
+            <Card className="space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Local insights for {localInsights?.zip ?? "your area"}
+              </p>
+
+              {localLoading ? (
+                <p className="text-sm text-slate-400 animate-pulse">Loading local data...</p>
+              ) : localInsights && (
+                <div className="space-y-3">
+                  {/* EV Chargers */}
+                  {localInsights.evChargers && (
+                    <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-900">EV Charging Near You</span>
+                        <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                          {localInsights.evChargers.totalFound} stations
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {localInsights.evChargers.totalFound > 0
+                          ? `There are ${localInsights.evChargers.totalFound} public charging stations within ${localInsights.evChargers.radiusMiles} miles of you.${
+                              localInsights.evChargers.nearestDistance != null
+                                ? ` The nearest is ${localInsights.evChargers.nearestDistance.toFixed(1)} miles away.`
+                                : ""
+                            }`
+                          : `We didn't find public chargers within ${localInsights.evChargers.radiusMiles} miles, but the EV charging network is growing fast.`}
+                      </p>
+                      {localInsights.evChargers.sampleLocations.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {localInsights.evChargers.sampleLocations.map((loc, i) => (
+                            <div key={i} className="flex justify-between text-xs text-slate-500">
+                              <span>{loc.name}</span>
+                              <span>{loc.distance} mi</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="mt-2 text-xs text-slate-400">Source: OpenChargeMap</p>
+                    </div>
+                  )}
+
+                  {/* Solar Potential */}
+                  {localInsights.solar && (
+                    <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-semibold text-slate-900">Solar Potential</span>
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                          {localInsights.solar.solarResourceDaily} sun hrs/day
+                        </span>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {localInsights.solar.message}
+                      </p>
+                      <p className="mt-2 text-xs text-slate-400">Source: NREL PVWatts</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
+
           {/* ── Investments Card ── */}
           <Card className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -490,15 +688,6 @@ export default function ResultsPage() {
                               <>
                                 <span>{f.points}</span>
                                 <span className="text-slate-400">/ 40</span>
-                                {f.grade ? (
-                                  <span className="ml-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800 ring-1 ring-emerald-200/60">
-                                    {f.grade}
-                                  </span>
-                                ) : (
-                                  <span className="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800 ring-1 ring-amber-200/60">
-                                    Unknown
-                                  </span>
-                                )}
                               </>
                             )}
                           </div>
@@ -554,6 +743,47 @@ export default function ResultsPage() {
                 ))}
               </ul>
             )}
+          </Card>
+
+          {/* ── AI Action Plan ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Your personalized action plan
+            </p>
+            {actionPlan ? (
+              <div className="prose prose-sm prose-slate max-w-none text-sm leading-relaxed [&_strong]:text-slate-900" dangerouslySetInnerHTML={{
+                __html: actionPlan
+                  .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                  .replace(/\n/g, "<br />"),
+              }} />
+            ) : actionPlanLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-400 animate-pulse">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Generating your personalized plan...
+              </div>
+            ) : actionPlanError ? (
+              <div className="space-y-2">
+                <p className="text-sm text-red-600">{actionPlanError}</p>
+                <Button variant="secondary" size="sm" onClick={fetchActionPlan}>
+                  Try again
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-[color:var(--gs-text-muted)]">
+                  Get a personalized action plan tailored to your specific scores and answers, powered by AI.
+                </p>
+                <Button variant="primary" size="sm" onClick={fetchActionPlan}>
+                  Generate my action plan
+                </Button>
+              </div>
+            )}
+            <p className="text-xs text-slate-400">
+              Powered by Claude — no personal data is stored.
+            </p>
           </Card>
         </div>
       </div>
