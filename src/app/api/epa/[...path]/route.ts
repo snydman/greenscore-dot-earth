@@ -52,7 +52,8 @@ export async function GET(
 
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, max-age=604800, s-maxage=604800",
+        // Browser cache only — prevent CDN from collapsing different query params
+        "Cache-Control": "private, max-age=604800",
       },
     });
   } catch (e) {

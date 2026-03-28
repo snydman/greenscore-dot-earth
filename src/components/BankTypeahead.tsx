@@ -18,6 +18,17 @@ const RATING_COLORS: Record<BankGreenRating, string> = {
   worst: "bg-red-50 text-red-800 ring-red-200/60",
 };
 
+const VALID_RATINGS = new Set<string>(["great", "good", "ok", "bad", "worst"]);
+
+function isValidRating(r: string): r is BankGreenRating {
+  return VALID_RATINGS.has(r);
+}
+
+/** Search the static fallback list */
+function searchStatic(query: string): BankEntry[] {
+  return BANKS.filter((b) => b.name.toLowerCase().includes(query)).slice(0, 10);
+}
+
 export default function BankTypeahead({
   value,
   onChange,
@@ -26,14 +37,66 @@ export default function BankTypeahead({
 }: BankTypeaheadProps) {
   const [open, setOpen] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [matches, setMatches] = useState<BankEntry[]>([]);
+  const [loading, setLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const query = value.trim().toLowerCase();
-  const matches =
-    query.length > 0
-      ? BANKS.filter((b) => b.name.toLowerCase().includes(query)).slice(0, 10)
-      : [];
+
+  // Debounced search: try Bank.Green API, fall back to static list
+  useEffect(() => {
+    if (query.length < 2) {
+      setMatches([]);
+      return;
+    }
+
+    // Show static matches immediately while API loads
+    setMatches(searchStatic(query));
+
+    const timer = setTimeout(async () => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/bank-green?q=${encodeURIComponent(query)}`,
+          { signal: controller.signal },
+        );
+        if (!res.ok) throw new Error("API error");
+
+        const data = await res.json();
+        const apiResults: BankEntry[] = (data.banks ?? [])
+          .filter((b: { rating: string }) => isValidRating(b.rating))
+          .map((b: { name: string; tag: string; rating: string }) => ({
+            slug: b.tag,
+            name: b.name,
+            rating: b.rating as BankGreenRating,
+          }));
+
+        if (!controller.signal.aborted) {
+          // Merge: API results first, then static-only entries not already present
+          const apiTags = new Set(apiResults.map((b) => b.slug));
+          const staticOnly = searchStatic(query).filter((b) => !apiTags.has(b.slug));
+          setMatches([...apiResults, ...staticOnly].slice(0, 15));
+        }
+      } catch {
+        // On error or abort, keep the static matches already shown
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      abortRef.current?.abort();
+    };
+  }, [query]);
 
   // Close on outside click
   useEffect(() => {
@@ -49,7 +112,7 @@ export default function BankTypeahead({
   // Reset active index when matches change
   useEffect(() => {
     setActiveIdx(-1);
-  }, [query]);
+  }, [matches]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (!open) return;
@@ -130,9 +193,15 @@ export default function BankTypeahead({
             </li>
           ))}
 
-          {matches.length === 0 && (
+          {matches.length === 0 && !loading && (
             <li className="px-4 py-2.5 text-sm text-slate-500">
               No matches found
+            </li>
+          )}
+
+          {loading && matches.length === 0 && (
+            <li className="px-4 py-2.5 text-sm text-slate-400 animate-pulse">
+              Searching Bank.Green…
             </li>
           )}
 
