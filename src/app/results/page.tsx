@@ -84,6 +84,7 @@ export default function ResultsPage() {
   const [actionPlan, setActionPlan] = useState<string | null>(null);
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
   const [actionPlanError, setActionPlanError] = useState<string | null>(null);
+  const [userGoals, setUserGoals] = useState("");
 
   type LocalInsights = {
     zip: string;
@@ -309,6 +310,7 @@ export default function ResultsPage() {
           zipCode: saved.answers.zipCode ?? null,
           evChargersNearby: localInsights?.evChargers?.totalFound ?? null,
           solarPotentialKwh: localInsights?.solar?.annualKwh ?? null,
+          userGoals: userGoals.trim().slice(0, 500) || null,
         }),
       });
 
@@ -786,10 +788,25 @@ export default function ResultsPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-sm text-[color:var(--gs-text-muted)]">
                   Get a personalized action plan tailored to your specific scores and answers, powered by AI.
                 </p>
+                <div className="space-y-1.5">
+                  <label htmlFor="user-goals" className="block text-xs font-medium text-slate-600">
+                    What are your green goals? <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <textarea
+                    id="user-goals"
+                    value={userGoals}
+                    onChange={(e) => setUserGoals(e.target.value.slice(0, 500))}
+                    placeholder="e.g., I want to switch to an EV but I'm not sure where to start, or I'd like to reduce my carbon footprint on a budget..."
+                    rows={3}
+                    maxLength={500}
+                    className="w-full rounded-xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+                  />
+                  <p className="text-right text-[10px] text-slate-400">{userGoals.length}/500</p>
+                </div>
                 <Button variant="primary" size="sm" onClick={fetchActionPlan}>
                   Generate my action plan
                 </Button>
