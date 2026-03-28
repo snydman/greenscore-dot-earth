@@ -1,8 +1,7 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
 "use client";
 
 import Link from "next/link";
-import { useRef, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, StepProgress } from "../../components/ui";
 import BankTypeahead from "../../components/BankTypeahead";
@@ -44,6 +43,7 @@ const TOTAL_STEPS = 7;
 export default function QuizPage() {
   const router = useRouter();
   const prescoreRef = useRef<AbortController | null>(null);
+  const stepHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const [step, setStep] = useState(1);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [bankSearch, setBankSearch] = useState("");
@@ -63,6 +63,13 @@ export default function QuizPage() {
 
   const isFirst = step === 1;
   const isLast = step === TOTAL_STEPS;
+
+  // Move focus to the step heading when step changes
+  useEffect(() => {
+    if (stepHeadingRef.current) {
+      stepHeadingRef.current.focus();
+    }
+  }, [step]);
 
   // Auto-derive state from zip code via Zippopotam.us
   const [zipDerivedState, setZipDerivedState] = useState<string>("");
@@ -84,7 +91,7 @@ export default function QuizPage() {
             }));
           }
         })
-        .catch(() => {});
+        .catch((err) => console.warn("[quiz] Zip lookup failed:", err));
     } else {
       setZipDerivedState("");
     }
@@ -183,7 +190,7 @@ export default function QuizPage() {
   }
 
   return (
-    <main className="gs-container py-10 sm:py-14">
+    <main id="main-content" className="gs-container py-10 sm:py-14">
       <header className="flex items-center justify-between">
         <Link
           href="/"
@@ -222,7 +229,7 @@ export default function QuizPage() {
           <StepProgress current={step} total={TOTAL_STEPS} />
 
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 ref={stepHeadingRef} tabIndex={-1} className="text-2xl font-semibold tracking-tight outline-none">
               {step === 1 && "Where do you live?"}
               {step === 2 && "Your banking"}
               {step === 3 && "Your investments"}
@@ -250,10 +257,11 @@ export default function QuizPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="zip-code" className="text-sm font-medium">
                     What&apos;s your zip code? <span className="font-normal text-slate-500">(optional)</span>
                   </label>
                   <input
+                    id="zip-code"
                     type="text"
                     inputMode="numeric"
                     maxLength={5}
@@ -318,7 +326,7 @@ export default function QuizPage() {
                 {/* Bank input (typeahead or category picker) */}
                 {addingBank ? (
                   <>
-                    <label className="text-sm font-medium">
+                    <label htmlFor="bank-search" className="text-sm font-medium">
                       {data.banks.length === 0
                         ? "What\u2019s the main bank you use?"
                         : "Add another bank"}
@@ -440,8 +448,9 @@ export default function QuizPage() {
 
             {step === 4 && data.knowsTickers && (
               <div className="space-y-2 text-left">
-                <label className="text-sm font-medium">Enter any mutual fund or ETF tickers you know</label>
+                <label htmlFor="tickers" className="text-sm font-medium">Enter any mutual fund or ETF tickers you know</label>
                 <textarea
+                  id="tickers"
                   rows={3}
                   className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
                   placeholder="e.g. VTI, ICLN, AAPL"
@@ -550,8 +559,9 @@ export default function QuizPage() {
             {step === 6 && (
               <div className="space-y-4 text-left">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">How is your home mostly heated?</label>
+                  <label htmlFor="heating-type" className="text-sm font-medium">How is your home mostly heated?</label>
                   <select
+                    id="heating-type"
                     className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
                     value={data.heating}
                     onChange={(e) => setData((prev) => ({ ...prev, heating: e.target.value as HeatingType | "" }))}
@@ -588,13 +598,14 @@ export default function QuizPage() {
                       </>
                     ) : (
                       <>
-                        <label className="text-sm font-medium">
+                        <label htmlFor="heating-state" className="text-sm font-medium">
                           What state do you live in? <span className="font-normal text-slate-500">(optional)</span>
                         </label>
                         <p className="text-xs text-slate-500">
                           Electric heating is only as clean as your grid. We use EPA eGRID data to adjust your score.
                         </p>
                         <select
+                          id="heating-state"
                           className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
                           value={data.heatingState}
                           onChange={(e) => setData((prev) => ({ ...prev, heatingState: e.target.value }))}
@@ -629,10 +640,11 @@ export default function QuizPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">
+                  <label htmlFor="air-travel" className="text-sm font-medium">
                     Roughly how many round-trip flights do you take per year?
                   </label>
                   <select
+                    id="air-travel"
                     className="w-full rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-4 py-3 text-sm shadow-sm outline-none"
                     value={data.airTravel}
                     onChange={(e) => setData((prev) => ({ ...prev, airTravel: e.target.value as AirTravelTier | "" }))}

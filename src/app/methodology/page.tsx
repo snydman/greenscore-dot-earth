@@ -1,22 +1,9 @@
-import Link from "next/link";
+import SiteNav from "../../components/SiteNav";
 
 export default function MethodologyPage() {
   return (
-    <main className="gs-container py-10 sm:py-14">
-      <header className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
-        >
-          &larr; Home
-        </Link>
-        <Link
-          href="/results"
-          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 underline-offset-4 hover:text-emerald-900 hover:underline"
-        >
-          Your results &rarr;
-        </Link>
-      </header>
+    <main id="main-content" className="gs-container py-10 sm:py-14">
+      <SiteNav />
 
       <div className="mx-auto mt-8 max-w-2xl space-y-10">
         <div className="space-y-3">
@@ -42,9 +29,9 @@ export default function MethodologyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">Category</th>
-                  <th className="px-4 py-2.5">Source</th>
-                  <th className="px-4 py-2.5">What we use</th>
+                  <th scope="col" className="px-4 py-2.5">Category</th>
+                  <th scope="col" className="px-4 py-2.5">Source</th>
+                  <th scope="col" className="px-4 py-2.5">What we use</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
@@ -168,9 +155,9 @@ export default function MethodologyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">Bank.Green rating</th>
-                  <th className="px-4 py-2.5">Score</th>
-                  <th className="px-4 py-2.5">Meaning</th>
+                  <th scope="col" className="px-4 py-2.5">Bank.Green rating</th>
+                  <th scope="col" className="px-4 py-2.5">Score</th>
+                  <th scope="col" className="px-4 py-2.5">Meaning</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
@@ -261,9 +248,9 @@ export default function MethodologyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">CO&#x2082; g/mile</th>
-                  <th className="px-4 py-2.5">Score</th>
-                  <th className="px-4 py-2.5">Rating</th>
+                  <th scope="col" className="px-4 py-2.5">CO&#x2082; g/mile</th>
+                  <th scope="col" className="px-4 py-2.5">Score</th>
+                  <th scope="col" className="px-4 py-2.5">Rating</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
@@ -333,9 +320,9 @@ export default function MethodologyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">Heating type</th>
-                  <th className="px-4 py-2.5">Base score</th>
-                  <th className="px-4 py-2.5">Rating</th>
+                  <th scope="col" className="px-4 py-2.5">Heating type</th>
+                  <th scope="col" className="px-4 py-2.5">Base score</th>
+                  <th scope="col" className="px-4 py-2.5">Rating</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">
@@ -428,8 +415,8 @@ export default function MethodologyPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[color:var(--gs-border-subtle)] bg-slate-50/80 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="px-4 py-2.5">Flights per year</th>
-                  <th className="px-4 py-2.5">Score</th>
+                  <th scope="col" className="px-4 py-2.5">Flights per year</th>
+                  <th scope="col" className="px-4 py-2.5">Score</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[color:var(--gs-border-subtle)]">

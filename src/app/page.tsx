@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button, Card } from "../components/ui";
+import { Card } from "../components/ui";
+import SiteNav from "../components/SiteNav";
 
 const CATEGORIES = [
   {
@@ -82,32 +83,8 @@ function HeroVisual() {
 
 export default function HomePage() {
   return (
-    <main className="gs-container pb-16 pt-10 sm:pt-14">
-      {/* Top nav */}
-      <div className="flex items-center justify-between">
-        <Link href="/" className="inline-flex items-center gap-2">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--gs-accent)] text-white shadow-sm">
-            G
-          </span>
-          <span className="text-sm font-semibold tracking-tight">GreenScore</span>
-        </Link>
-
-        <div className="flex items-center gap-2">
-          <Link href="/learn" className="hidden sm:block">
-            <Button variant="ghost" size="sm">
-              Learn
-            </Button>
-          </Link>
-          <Link href="/methodology" className="hidden sm:block">
-            <Button variant="ghost" size="sm">
-              Methodology
-            </Button>
-          </Link>
-          <Link href="/quiz">
-            <Button size="sm">Take the quiz</Button>
-          </Link>
-        </div>
-      </div>
+    <main id="main-content" className="gs-container pb-16 pt-10 sm:pt-14">
+      <SiteNav />
 
       {/* Hero */}
       <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-center">
@@ -126,14 +103,12 @@ export default function HomePage() {
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link href="/quiz" className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto">Start the quiz</Button>
+            <Link href="/quiz" className="inline-flex w-full items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/40 bg-[color:var(--gs-accent)] text-white shadow-sm hover:bg-[color:var(--gs-accent-deep)] px-5 py-2.5 text-sm sm:w-auto">
+              Start the quiz
             </Link>
 
-            <Link href="/methodology" className="w-full sm:w-auto">
-              <Button variant="secondary" className="w-full sm:w-auto">
-                How it works
-              </Button>
+            <Link href="/methodology" className="inline-flex w-full items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 border border-[color:var(--gs-border-subtle)] bg-white/70 text-[color:var(--gs-text-main)] shadow-sm hover:bg-white px-5 py-2.5 text-sm sm:w-auto">
+              How it works
             </Link>
           </div>
 
@@ -177,8 +152,8 @@ export default function HomePage() {
             a more sustainable lifestyle.
           </p>
           <div className="mt-6">
-            <a href="mailto:hello@greenscore.earth">
-              <Button variant="secondary">Contact us</Button>
+            <a href="mailto:hello@greenscore.earth" className="inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600/30 border border-[color:var(--gs-border-subtle)] bg-white/70 text-[color:var(--gs-text-main)] shadow-sm hover:bg-white px-5 py-2.5 text-sm">
+              Contact us
             </a>
           </div>
         </Card>

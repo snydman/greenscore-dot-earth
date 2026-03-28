@@ -74,7 +74,7 @@ export default function VehicleSelector({
         setLoading(null);
       },
     );
-  }, [year]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [year]); // eslint-disable-line react-hooks/exhaustive-deps -- onChange is stable (parent ref), including it causes infinite re-renders
 
   // Load models when make changes
   useEffect(() => {
@@ -91,7 +91,7 @@ export default function VehicleSelector({
       setModels(items);
       setLoading(null);
     });
-  }, [year, make]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [year, make]); // eslint-disable-line react-hooks/exhaustive-deps -- onChange is stable (parent ref)
 
   // Fetch vehicle data when model is selected
   useEffect(() => {
@@ -122,7 +122,7 @@ export default function VehicleSelector({
       }
       setLoading(null);
     });
-  }, [year, make, model]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [year, make, model]); // eslint-disable-line react-hooks/exhaustive-deps -- onChange is stable (parent ref)
 
   if (!showSelector) {
     // User selected "no car" or "not sure" — show reset option
@@ -145,12 +145,13 @@ export default function VehicleSelector({
 
   return (
     <div className="space-y-3 text-left">
-      <label className="text-sm font-medium">
+      <label htmlFor="vehicle-year" className="text-sm font-medium">
         What year, make, and model is your primary vehicle?
       </label>
 
       {/* Year */}
       <select
+        id="vehicle-year"
         className={SELECT_CLS}
         value={year}
         onChange={(e) => setYear(e.target.value)}
@@ -169,6 +170,8 @@ export default function VehicleSelector({
       {/* Make */}
       {year && (
         <select
+          id="vehicle-make"
+          aria-label="Select vehicle make"
           className={SELECT_CLS}
           value={make}
           onChange={(e) => setMake(e.target.value)}
@@ -188,6 +191,8 @@ export default function VehicleSelector({
       {/* Model */}
       {year && make && (
         <select
+          id="vehicle-model"
+          aria-label="Select vehicle model"
           className={SELECT_CLS}
           value={model}
           onChange={(e) => setModel(e.target.value)}

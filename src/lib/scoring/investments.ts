@@ -13,7 +13,7 @@ type FundEntry = {
     ticker: string;
     name?: string;
     grade?: string;
-    points: number; // 0..40 contribution (per-ticker mapped then averaged)
+    points: number; // 0..36 contribution (per-ticker mapped then averaged)
     explanation: string;
     status: "scored" | "unknown" | "loading" | "error";
     fossilExposurePct?: number;
@@ -64,7 +64,7 @@ type FundEntry = {
   
     if (grade in map) {
       const points = map[grade];
-      return { points, explanation: `Fossil fuel grade ${grade} → ${points}/40` };
+      return { points, explanation: `Fossil fuel grade ${grade} → ${points}/36` };
     }
   
     // If missing / unrecognized

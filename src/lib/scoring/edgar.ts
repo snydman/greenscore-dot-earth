@@ -45,7 +45,7 @@ export type FossilHolding = {
 
 export type EdgarScoreResult = {
   ticker: string;
-  score: number; // 0..40
+  score: number; // 0..36
   maxScore: 36;
   grade: string;
   fossilExposurePct: number;
@@ -60,10 +60,10 @@ export type EdgarScoreResult = {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-async function fetchJson(url: string): Promise<any> {
+async function fetchJson<T = Record<string, unknown>>(url: string): Promise<T> {
   const res = await fetch(url, { headers: { "User-Agent": UA } });
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 async function fetchText(url: string): Promise<string> {
@@ -114,9 +114,17 @@ async function findNportFiling(
   seriesId: string,
 ): Promise<{ xml: string; filingDate: string; reportDate: string | null }> {
   const paddedCik = padCik(cik);
-  const subs = await fetchJson(
-    `${SEC_BASE}/submissions/CIK${paddedCik}.json`
-  );
+  const subs = await fetchJson<{
+    filings?: {
+      recent?: {
+        form: string[];
+        primaryDocument: string[];
+        accessionNumber: string[];
+        filingDate: string[];
+        reportDate: string[];
+      };
+    };
+  }>(`${SEC_BASE}/submissions/CIK${paddedCik}.json`);
 
   const recent = subs.filings?.recent;
   if (!recent) throw new Error("No recent filings found");
@@ -156,7 +164,10 @@ async function findNportFiling(
           reportDate: recent.reportDate?.[idx] ?? null,
         };
       }
-    } catch {
+    } catch (err) {
+      // Log but continue scanning — individual filing fetch failures
+      // shouldn't stop us from checking remaining filings
+      console.warn(`[edgar] Failed to fetch filing at index ${idx}:`, err instanceof Error ? err.message : err);
       continue;
     }
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getRateLimitKey } from "../../../lib/rate-limit";
 
 const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 
@@ -74,6 +75,16 @@ function buildUserMessage(data: ActionPlanRequest): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 5 requests per minute per IP (protects Anthropic API key costs)
+  const rlKey = getRateLimitKey(request, "action-plan");
+  const rl = checkRateLimit(rlKey, { maxRequests: 5, windowMs: 60_000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again shortly." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil(rl.resetMs / 1000)) } },
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -98,7 +109,7 @@ export async function POST(request: NextRequest) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: process.env.ACTION_PLAN_MODEL || "claude-haiku-4-5-20251001",
         max_tokens: 512,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: buildUserMessage(data) }],
