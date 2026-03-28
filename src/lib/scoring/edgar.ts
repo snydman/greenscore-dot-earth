@@ -46,7 +46,7 @@ export type FossilHolding = {
 export type EdgarScoreResult = {
   ticker: string;
   score: number; // 0..40
-  maxScore: 40;
+  maxScore: 36;
   grade: string;
   fossilExposurePct: number;
   totalHoldings: number;
@@ -234,15 +234,15 @@ function scoreFossilExposure(holdings: Holding[]): {
 }
 
 function exposureToScore(exposurePct: number): { score: number; grade: string } {
-  // 0% fossil → 40/40, ≥20% fossil → 0/40, linear in between
-  const score = Math.max(0, Math.min(40, Math.round(40 * (1 - exposurePct / 20))));
+  // 0% fossil → 36/36, ≥20% fossil → 0/36, linear in between
+  const score = Math.max(0, Math.min(36, Math.round(36 * (1 - exposurePct / 20))));
 
   // Grade based on score so the letter matches the number intuitively
   let grade: string;
-  if (score >= 36) grade = "A";
-  else if (score >= 30) grade = "B";
-  else if (score >= 22) grade = "C";
-  else if (score >= 14) grade = "D";
+  if (score >= 32) grade = "A";
+  else if (score >= 27) grade = "B";
+  else if (score >= 20) grade = "C";
+  else if (score >= 13) grade = "D";
   else grade = "F";
 
   return { score, grade };
@@ -276,7 +276,7 @@ export async function scoreTickerEdgar(ticker: string): Promise<EdgarScoreResult
   return {
     ticker: normalized,
     score,
-    maxScore: 40,
+    maxScore: 36,
     grade,
     fossilExposurePct: exposure.fossilExposurePct,
     totalHoldings: holdings.length,

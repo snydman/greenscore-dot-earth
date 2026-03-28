@@ -226,13 +226,13 @@ export default function ResultsPage() {
   // Compute aggregated investment score from resolved factors
   const investmentScore = useMemo(() => {
     const scored = factors.filter((f) => f.status === "scored");
-    if (scored.length === 0) return { points: 0, maxPoints: 40 as const, confidence: "low" as const };
+    if (scored.length === 0) return { points: 0, maxPoints: 36 as const, confidence: "low" as const };
 
     const avg = scored.reduce((sum, f) => sum + f.points, 0) / scored.length;
     const scoredRatio = scored.length / factors.length;
     const confidence = scoredRatio >= 0.8 ? "high" : scoredRatio >= 0.5 ? "medium" : "low";
 
-    return { points: Math.round(avg), maxPoints: 40 as const, confidence: confidence as "low" | "medium" | "high" };
+    return { points: Math.round(avg), maxPoints: 36 as const, confidence: confidence as "low" | "medium" | "high" };
   }, [factors]);
 
   const isLoading = factors.some((f) => f.status === "loading");
@@ -245,9 +245,8 @@ export default function ResultsPage() {
     const heatingPts = heatingResult.points;
     const airTravelPts = airTravelResult.points;
     const totalPoints = bankPts + investPts + transportPts + heatingPts + airTravelPts;
-    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints + heatingResult.maxPoints + airTravelResult.maxPoints; // 20 + 40 + 20 + 20 + 10 = 110
-    const pct = maxPoints > 0 ? Math.round((totalPoints / maxPoints) * 100) : 0;
-    return { totalPoints, maxPoints, pct };
+    const maxPoints = bankResult.maxPoints + investmentScore.maxPoints + transportResult.maxPoints + heatingResult.maxPoints + airTravelResult.maxPoints; // 18 + 36 + 18 + 18 + 10 = 100
+    return { totalPoints, maxPoints, pct: totalPoints };
   }, [bankResult, investmentScore, transportResult, heatingResult, airTravelResult, scoringDone, tickers.length]);
 
   const scoreLabel = overallScore.pct >= 70 ? "Strong" : overallScore.pct >= 40 ? "Moderate — room to grow" : "Needs attention";
@@ -687,7 +686,7 @@ export default function ResultsPage() {
                             ) : (
                               <>
                                 <span>{f.points}</span>
-                                <span className="text-slate-400">/ 40</span>
+                                <span className="text-slate-400">/ 36</span>
                               </>
                             )}
                           </div>
@@ -753,8 +752,13 @@ export default function ResultsPage() {
             {actionPlan ? (
               <div className="prose prose-sm prose-slate max-w-none text-sm leading-relaxed [&_strong]:text-slate-900" dangerouslySetInnerHTML={{
                 __html: actionPlan
+                  .replace(/^#{1,3}\s+.*$/gm, "")         // strip markdown headers
+                  .replace(/^---+$/gm, "")                 // strip horizontal rules
                   .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                  .replace(/\n/g, "<br />"),
+                  .replace(/\*(.*?)\*/g, "<em>$1</em>")
+                  .replace(/\n{2,}/g, "<br /><br />")
+                  .replace(/\n/g, "<br />")
+                  .trim(),
               }} />
             ) : actionPlanLoading ? (
               <div className="flex items-center gap-2 text-sm text-slate-400 animate-pulse">
@@ -784,6 +788,20 @@ export default function ResultsPage() {
             <p className="text-xs text-slate-400">
               Powered by Claude — no personal data is stored.
             </p>
+          </Card>
+
+          {/* Coaching CTA */}
+          <Card className="space-y-3 text-center">
+            <p className="text-sm font-semibold text-slate-900">
+              Want hands-on help making these changes?
+            </p>
+            <p className="text-xs leading-relaxed text-[color:var(--gs-text-muted)]">
+              From choosing a heat pump to navigating rebate programs to building
+              greener habits — our sustainability coaches can help you take the next step.
+            </p>
+            <a href="mailto:hello@greenscore.earth">
+              <Button variant="secondary" size="sm">Contact us</Button>
+            </a>
           </Card>
         </div>
       </div>

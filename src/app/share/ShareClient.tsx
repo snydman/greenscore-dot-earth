@@ -20,7 +20,7 @@ export default function ShareClient({ score, bank, transport, heating, invest, a
       <div className="mx-auto max-w-lg">
         <Card className="flex flex-col items-center gap-6 text-center">
           <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-            Someone scored {score}/100 on GreenScore
+            I scored {score}/100 on GreenScore
           </h1>
           <p className="text-sm text-[color:var(--gs-text-muted)]">
             What will you get?
@@ -40,11 +40,11 @@ export default function ShareClient({ score, bank, transport, heating, invest, a
 
           <div className="grid w-full grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             {[
-              { label: "Banking", pts: bank, max: 20 },
-              { label: "Transport", pts: transport, max: 20 },
-              { label: "Heating", pts: heating, max: 20 },
+              { label: "Banking", pts: bank, max: 18 },
+              { label: "Transport", pts: transport, max: 18 },
+              { label: "Heating", pts: heating, max: 18 },
               { label: "Air Travel", pts: airTravel, max: 10 },
-              { label: "Investments", pts: invest, max: 40 },
+              { label: "Investments", pts: invest, max: 36 },
             ].map((c) => (
               <div key={c.label} className="rounded-xl bg-slate-50 px-3 py-2 ring-1 ring-black/5">
                 <div className="text-xs font-semibold text-slate-500">{c.label}</div>

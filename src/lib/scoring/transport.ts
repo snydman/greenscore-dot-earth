@@ -15,8 +15,8 @@ export type TransportQuizData =
   | { type: "not_sure" };
 
 export type TransportScoreResult = {
-  points: number; // 0..20
-  maxPoints: 20;
+  points: number; // 0..18
+  maxPoints: 18;
   rating: TransportRating;
   vehicleLabel: string;
   explanation: string;
@@ -34,7 +34,7 @@ const RATING_LABELS: Record<TransportRating, string> = {
 };
 
 function co2GpmToPoints(gpm: number): number {
-  return Math.round(Math.max(0, Math.min(20, 20 * (1 - gpm / 500))));
+  return Math.round(Math.max(0, Math.min(18, 18 * (1 - gpm / 500))));
 }
 
 function co2GpmToRating(gpm: number): TransportRating {
@@ -47,12 +47,12 @@ function co2GpmToRating(gpm: number): TransportRating {
 
 export type MultiTransportScoreResult = {
   points: number;
-  maxPoints: 20;
+  maxPoints: 18;
   individual: TransportScoreResult[];
 };
 
 function weightedAverage(scores: number[]): number {
-  if (scores.length === 0) return 10;
+  if (scores.length === 0) return 9;
   if (scores.length === 1) return scores[0];
   const PRIMARY_WEIGHT = 0.6;
   const secondaryWeight = 0.4 / (scores.length - 1);
@@ -67,11 +67,11 @@ export function scoreVehicles(
   vehicles: TransportQuizData[],
 ): MultiTransportScoreResult {
   if (vehicles.length === 0) {
-    return { points: 10, maxPoints: 20, individual: [] };
+    return { points: 10, maxPoints: 18, individual: [] };
   }
   const individual = vehicles.map((v) => scoreTransport(v));
   const points = weightedAverage(individual.map((r) => r.points));
-  return { points, maxPoints: 20, individual };
+  return { points, maxPoints: 18, individual };
 }
 
 export function scoreTransport(
@@ -79,8 +79,8 @@ export function scoreTransport(
 ): TransportScoreResult {
   if (!data || data.type === "not_sure") {
     return {
-      points: 10,
-      maxPoints: 20,
+      points: 9,
+      maxPoints: 18,
       rating: "ok",
       vehicleLabel: "Not sure",
       explanation: "No vehicle selected — scored neutrally",
@@ -90,8 +90,8 @@ export function scoreTransport(
 
   if (data.type === "none") {
     return {
-      points: 20,
-      maxPoints: 20,
+      points: 18,
+      maxPoints: 18,
       rating: "great",
       vehicleLabel: "No car",
       explanation: "Car-free — zero transport emissions",
@@ -103,7 +103,7 @@ export function scoreTransport(
 
   return {
     points: co2GpmToPoints(data.co2Gpm),
-    maxPoints: 20,
+    maxPoints: 18,
     rating,
     vehicleLabel: `${data.year} ${data.make} ${data.model}`,
     explanation: `${data.co2Gpm} g CO₂/mile · ${data.combinedMpg} MPG combined · ${data.fuelType}`,

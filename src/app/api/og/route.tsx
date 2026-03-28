@@ -109,10 +109,10 @@ export async function GET(request: NextRequest) {
         {/* Category scores */}
         <div style={{ display: "flex", gap: "24px", marginBottom: "32px" }}>
           {[
-            { label: "Banking", value: bank, max: "20" },
-            { label: "Transport", value: transport, max: "20" },
-            { label: "Heating", value: heating, max: "20" },
-            { label: "Investments", value: invest, max: "40" },
+            { label: "Banking", value: bank, max: "18" },
+            { label: "Transport", value: transport, max: "18" },
+            { label: "Heating", value: heating, max: "18" },
+            { label: "Investments", value: invest, max: "36" },
           ].map((cat) => (
             <div
               key={cat.label}

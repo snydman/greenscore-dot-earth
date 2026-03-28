@@ -3,6 +3,39 @@
 import Link from "next/link";
 import { Button, Card } from "../components/ui";
 
+const CATEGORIES = [
+  {
+    name: "Banking",
+    desc: "Where your deposits go matters",
+    icon: "🏦",
+    color: "from-emerald-400 to-emerald-600",
+  },
+  {
+    name: "Investments",
+    desc: "Fossil fuel exposure in your funds",
+    icon: "📊",
+    color: "from-blue-400 to-blue-600",
+  },
+  {
+    name: "Transport",
+    desc: "Your vehicle's real emissions",
+    icon: "🚗",
+    color: "from-sky-400 to-sky-600",
+  },
+  {
+    name: "Home heating",
+    desc: "Your fuel type and local grid",
+    icon: "🏠",
+    color: "from-orange-400 to-orange-600",
+  },
+  {
+    name: "Air travel",
+    desc: "Flight frequency awareness",
+    icon: "✈️",
+    color: "from-violet-400 to-violet-600",
+  },
+];
+
 function HeroVisual() {
   return (
     <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-100/70 via-white/60 to-amber-100/60 ring-1 ring-black/5">
@@ -11,63 +44,36 @@ function HeroVisual() {
       <div className="absolute top-24 -right-24 h-72 w-72 rounded-full bg-amber-300/25 blur-3xl" />
       <div className="absolute bottom-[-120px] left-1/3 h-72 w-72 rounded-full bg-emerald-200/25 blur-3xl" />
 
-      {/* “dashboard cards” */}
-      <div className="relative grid gap-4 p-6 sm:p-8">
-        <div className="gs-chip w-fit">Prototype</div>
+      <div className="relative grid gap-3 p-6 sm:p-8">
+        <p className="text-sm font-semibold text-slate-700">Five areas, one score</p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-500">Banking</div>
-            <div className="mt-1 flex items-end justify-between">
-              <div className="text-lg font-semibold">Cash alignment</div>
-              <div className="text-sm font-semibold text-emerald-700">+12</div>
+        <div className="space-y-2.5">
+          {CATEGORIES.map((cat) => (
+            <div
+              key={cat.name}
+              className="flex items-center gap-3 rounded-2xl bg-white/80 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur"
+            >
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${cat.color} text-lg shadow-sm`}>
+                {cat.icon}
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-900">{cat.name}</div>
+                <div className="text-xs text-slate-500">{cat.desc}</div>
+              </div>
             </div>
-            <div className="mt-3 h-2 w-full rounded-full bg-black/5">
-              <div className="h-2 w-[65%] rounded-full bg-emerald-400" />
-            </div>
-          </div>
-
-          <div className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur">
-            <div className="text-xs font-semibold text-slate-500">Investments</div>
-            <div className="mt-1 flex items-end justify-between">
-              <div className="text-lg font-semibold">Portfolio tilt</div>
-              <div className="text-sm font-semibold text-amber-700">–8</div>
-            </div>
-            <div className="mt-3 h-2 w-full rounded-full bg-black/5">
-              <div className="h-2 w-[42%] rounded-full bg-amber-300" />
-            </div>
-          </div>
+          ))}
         </div>
 
-        <div className="rounded-2xl bg-white/80 p-4 shadow-sm ring-1 ring-black/5 backdrop-blur">
-          <div className="flex items-center justify-between">
+        <div className="mt-1 rounded-2xl bg-white/80 px-4 py-3 shadow-sm ring-1 ring-black/5 backdrop-blur">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-sm font-bold text-white shadow-sm">
+              G
+            </div>
             <div>
-              <div className="text-xs font-semibold text-slate-500">Your GreenScore</div>
-              <div className="text-2xl font-semibold">62 / 100</div>
-            </div>
-            <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/60">
-              Moderate — room to grow
+              <div className="text-sm font-semibold text-slate-900">Your GreenScore</div>
+              <div className="text-xs text-slate-500">Personalized insights and action plan</div>
             </div>
           </div>
-
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <div className="rounded-xl bg-white/70 p-3 ring-1 ring-black/5">
-              <div className="text-xs font-semibold text-slate-500">Transport</div>
-              <div className="text-sm font-semibold">65</div>
-            </div>
-            <div className="rounded-xl bg-white/70 p-3 ring-1 ring-black/5">
-              <div className="text-xs font-semibold text-slate-500">Home</div>
-              <div className="text-sm font-semibold">54</div>
-            </div>
-            <div className="rounded-xl bg-white/70 p-3 ring-1 ring-black/5">
-              <div className="text-xs font-semibold text-slate-500">Habits</div>
-              <div className="text-sm font-semibold">72</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="text-xs text-slate-500">
-          Example visuals only — no personal data is stored in this prototype.
         </div>
       </div>
     </div>
@@ -87,13 +93,18 @@ export default function HomePage() {
         </Link>
 
         <div className="flex items-center gap-2">
-          <Link href="/results" className="hidden sm:block">
+          <Link href="/learn" className="hidden sm:block">
             <Button variant="ghost" size="sm">
-              Sample results
+              Learn
+            </Button>
+          </Link>
+          <Link href="/methodology" className="hidden sm:block">
+            <Button variant="ghost" size="sm">
+              Methodology
             </Button>
           </Link>
           <Link href="/quiz">
-            <Button size="sm">Start</Button>
+            <Button size="sm">Take the quiz</Button>
           </Link>
         </div>
       </div>
@@ -101,7 +112,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="mt-10 grid gap-10 lg:grid-cols-2 lg:items-center">
         <div className="space-y-6">
-          <div className="gs-chip">A fast, explainable climate check</div>
+          <div className="gs-chip">Free, private, 5 minutes</div>
 
           <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
             How green is your{" "}
@@ -109,9 +120,9 @@ export default function HomePage() {
           </h1>
 
           <p className="text-base leading-relaxed text-[color:var(--gs-text-muted)] sm:text-lg">
-            Answer a few simple questions about your bank, investments, car, and home energy.
-            We’ll generate an easy-to-understand score and a shortlist of the most meaningful
-            next steps.
+            Your bank, car, home heating, air travel, and investments drive a
+            surprisingly large share of your carbon footprint. GreenScore measures
+            all five and shows you where small changes make the biggest difference.
           </p>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -119,44 +130,63 @@ export default function HomePage() {
               <Button className="w-full sm:w-auto">Start the quiz</Button>
             </Link>
 
-            <Link href="/results" className="w-full sm:w-auto">
+            <Link href="/methodology" className="w-full sm:w-auto">
               <Button variant="secondary" className="w-full sm:w-auto">
-                View sample results
+                How it works
               </Button>
             </Link>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
             <Card className="px-5 py-4">
-              <div className="text-xs font-semibold text-slate-500">Fast</div>
-              <div className="mt-1 text-sm font-semibold">~5 minutes</div>
+              <div className="text-xs font-semibold text-slate-500">Real data</div>
+              <div className="mt-1 text-sm font-semibold">SEC + EPA + NREL</div>
               <p className="mt-1 text-xs text-[color:var(--gs-text-muted)]">
-                Lightweight inputs, no account linking.
+                Fund holdings, vehicle emissions, grid intensity, and solar potential.
               </p>
             </Card>
             <Card className="px-5 py-4">
-              <div className="text-xs font-semibold text-slate-500">Explainable</div>
-              <div className="mt-1 text-sm font-semibold">Transparent</div>
+              <div className="text-xs font-semibold text-slate-500">Personalized</div>
+              <div className="mt-1 text-sm font-semibold">AI action plan</div>
               <p className="mt-1 text-xs text-[color:var(--gs-text-muted)]">
-                You’ll see what drove the score.
+                Tailored recommendations based on your specific answers.
               </p>
             </Card>
             <Card className="px-5 py-4">
               <div className="text-xs font-semibold text-slate-500">Private</div>
-              <div className="mt-1 text-sm font-semibold">Local-only</div>
+              <div className="mt-1 text-sm font-semibold">Nothing stored</div>
               <p className="mt-1 text-xs text-[color:var(--gs-text-muted)]">
-                Prototype: nothing is stored.
+                Your answers stay in your browser. No accounts, no tracking.
               </p>
             </Card>
           </div>
-
-          <p className="text-xs text-slate-500">
-            Prototype — educational only. Not financial, tax, or legal advice.
-          </p>
         </div>
 
         <HeroVisual />
       </div>
+
+      {/* Coaching CTA */}
+      <div className="mx-auto mt-20 max-w-2xl text-center">
+        <Card className="px-8 py-10">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Ready to make a change?
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[color:var(--gs-text-muted)]">
+            Whether it&apos;s switching to a heat pump, navigating rebate programs,
+            or building greener habits — we can help you take the next step toward
+            a more sustainable lifestyle.
+          </p>
+          <div className="mt-6">
+            <a href="mailto:hello@greenscore.earth">
+              <Button variant="secondary">Contact us</Button>
+            </a>
+          </div>
+        </Card>
+      </div>
+
+      <p className="mt-8 text-center text-xs text-slate-500">
+        Prototype — educational only. Not financial, tax, or legal advice.
+      </p>
     </main>
   );
 }

@@ -12,8 +12,8 @@ export type HeatingType =
 export type HeatingRating = "great" | "good" | "ok" | "bad" | "worst";
 
 export type HeatingScoreResult = {
-  points: number; // 0..20
-  maxPoints: 20;
+  points: number; // 0..18
+  maxPoints: 18;
   rating: HeatingRating;
   heatingLabel: string;
   explanation: string;
@@ -33,19 +33,19 @@ export type HeatingScoreResult = {
  * per BTU but still fossil). Oil and propane are worst among common options.
  */
 const BASE_SCORES: Record<HeatingType, { points: number; rating: HeatingRating; label: string }> = {
-  heat_pump:           { points: 20, rating: "great", label: "Heat pump" },
-  electric_resistance: { points: 14, rating: "good",  label: "Electric resistance" },
-  gas:                 { points: 10, rating: "ok",    label: "Natural gas" },
-  propane:             { points: 6,  rating: "bad",   label: "Propane" },
+  heat_pump:           { points: 18, rating: "great", label: "Heat pump" },
+  electric_resistance: { points: 13, rating: "good",  label: "Electric resistance" },
+  gas:                 { points: 9,  rating: "ok",    label: "Natural gas" },
+  propane:             { points: 5,  rating: "bad",   label: "Propane" },
   oil:                 { points: 4,  rating: "bad",   label: "Heating oil" },
-  wood:                { points: 8,  rating: "ok",    label: "Wood / pellet" },
-  not_sure:            { points: 10, rating: "ok",    label: "Not sure" },
+  wood:                { points: 7,  rating: "ok",    label: "Wood / pellet" },
+  not_sure:            { points: 9,  rating: "ok",    label: "Not sure" },
 };
 
 const RATING_THRESHOLDS: Array<[number, HeatingRating]> = [
-  [18, "great"],
-  [14, "good"],
-  [8, "ok"],
+  [16, "great"],
+  [13, "good"],
+  [7, "ok"],
   [4, "bad"],
   [0, "worst"],
 ];
@@ -121,8 +121,8 @@ export function scoreHeating(
 ): HeatingScoreResult {
   if (!heatingType || heatingType === "not_sure") {
     return {
-      points: 10,
-      maxPoints: 20,
+      points: 9,
+      maxPoints: 18,
       rating: "ok",
       heatingLabel: "Not sure",
       explanation: "No heating type selected \u2014 scored neutrally",
@@ -133,7 +133,7 @@ export function scoreHeating(
   const modifier = stateCode ? computeStateModifier(heatingType, stateCode) : undefined;
 
   const rawPoints = base.points + (modifier?.adjustment ?? 0);
-  const points = Math.max(0, Math.min(20, rawPoints));
+  const points = Math.max(0, Math.min(18, rawPoints));
   const rating = pointsToRating(points);
 
   let explanation = "";
@@ -164,7 +164,7 @@ export function scoreHeating(
 
   return {
     points,
-    maxPoints: 20,
+    maxPoints: 18,
     rating,
     heatingLabel: base.label,
     explanation,
