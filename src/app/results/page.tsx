@@ -84,6 +84,7 @@ export default function ResultsPage() {
   const [actionPlan, setActionPlan] = useState<string | null>(null);
   const [actionPlanLoading, setActionPlanLoading] = useState(false);
   const [actionPlanError, setActionPlanError] = useState<string | null>(null);
+  const [userGoals, setUserGoals] = useState("");
 
   type LocalInsights = {
     zip: string;
@@ -309,6 +310,7 @@ export default function ResultsPage() {
           zipCode: saved.answers.zipCode ?? null,
           evChargersNearby: localInsights?.evChargers?.totalFound ?? null,
           solarPotentialKwh: localInsights?.solar?.annualKwh ?? null,
+          userGoals: userGoals.trim().slice(0, 500) || null,
         }),
       });
 
@@ -393,7 +395,7 @@ export default function ResultsPage() {
           </div>
 
           <div className="text-xs text-[color:var(--gs-text-muted)]">
-            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + heating ({heatingResult.points}/{heatingResult.maxPoints}) + air travel ({airTravelResult.points}/{airTravelResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints})
+            {overallScore.totalPoints} / {overallScore.maxPoints} points from banking ({bankResult.points}/{bankResult.maxPoints}) + investments ({investmentScore.points}/{investmentScore.maxPoints}) + transport ({transportResult.points}/{transportResult.maxPoints}) + heating ({heatingResult.points}/{heatingResult.maxPoints}) + air travel ({airTravelResult.points}/{airTravelResult.maxPoints})
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -447,6 +449,103 @@ export default function ResultsPage() {
             <div className="text-xs text-slate-500">
               Source: <span className="font-semibold">Bank.Green</span> — fossil fuel lending data
               {bankResult.individual.some((b) => b.source === "category-fallback") && " (some estimated from bank type)"}
+            </div>
+          </Card>
+
+          {/* ── Investments Card ── */}
+          <Card className="space-y-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+              Investments {isLoading ? "(scoring…)" : "(live SEC data)"}
+            </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
+                {isLoading ? (
+                  <span className="text-slate-400">Scoring…</span>
+                ) : (
+                  <>Investments score: {investmentScore.points} / {investmentScore.maxPoints}</>
+                )}
+              </div>
+              {scoringDone && (
+                <span className="gs-chip">Confidence: {investmentScore.confidence}</span>
+              )}
+            </div>
+            {tickers.length === 0 ? (
+              <p className="text-sm text-[color:var(--gs-text-muted)]">
+                No tickers found from the quiz yet. Try entering something like <span className="font-semibold">VTI, ICLN</span>.
+              </p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold text-slate-600">
+                      How we scored your tickers
+                    </div>
+
+                    {factors.length > 3 && scoringDone && (
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
+                        onClick={() => setShowAllInvestmentDetails((v) => !v)}
+                        aria-expanded={showAllInvestmentDetails}
+                      >
+                        {showAllInvestmentDetails
+                          ? "Hide details"
+                          : `Show all (${factors.length})`}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className={showAllInvestmentDetails ? "mt-2 max-h-80 overflow-auto pr-1" : "mt-2"}>
+                    <ul className="space-y-2 text-sm">
+                      {(showAllInvestmentDetails
+                        ? factors
+                        : factors.slice(0, 3)
+                      ).map((f) => (
+                        <li
+                          key={f.ticker}
+                          className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between"
+                        >
+                          <div>
+                            <span className="font-semibold text-slate-900">{f.ticker}</span>
+                            {f.name ? <span className="text-slate-500"> · {f.name}</span> : null}
+                            <div className="text-xs text-slate-500">{f.explanation}</div>
+                            {f.filingDate && (
+                              <div className="text-xs text-slate-400">
+                                SEC filing: {f.filingDate}
+                              </div>
+                            )}
+                            {f.fossilHoldings && f.fossilHoldings.length > 0 && (
+                              <div className="mt-1 text-xs text-slate-400">
+                                Top fossil holdings:{" "}
+                                {f.fossilHoldings.map((h) =>
+                                  `${h.name} (${h.pctOfPortfolio.toFixed(1)}%)`
+                                ).join(", ")}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/5 sm:mt-0">
+                            {f.status === "loading" ? (
+                              <span className="text-slate-400 animate-pulse">Scoring…</span>
+                            ) : f.status === "error" ? (
+                              <span className="text-red-500">Error</span>
+                            ) : (
+                              <>
+                                <span>{f.points}</span>
+                                <span className="text-slate-400">/ 36</span>
+                              </>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs text-slate-500">
+              Source: <span className="font-semibold">SEC EDGAR N-PORT filings</span> — fossil exposure scored from actual fund holdings
             </div>
           </Card>
 
@@ -615,103 +714,6 @@ export default function ResultsPage() {
             </Card>
           )}
 
-          {/* ── Investments Card ── */}
-          <Card className="space-y-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-              Investments {isLoading ? "(scoring…)" : "(live SEC data)"}
-            </p>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-[color:var(--gs-text-main)]">
-                {isLoading ? (
-                  <span className="text-slate-400">Scoring…</span>
-                ) : (
-                  <>Investments score: {investmentScore.points} / {investmentScore.maxPoints}</>
-                )}
-              </div>
-              {scoringDone && (
-                <span className="gs-chip">Confidence: {investmentScore.confidence}</span>
-              )}
-            </div>
-            {tickers.length === 0 ? (
-              <p className="text-sm text-[color:var(--gs-text-muted)]">
-                No tickers found from the quiz yet. Try entering something like <span className="font-semibold">VTI, ICLN</span>.
-              </p>
-            ) : (
-              <div className="space-y-3 text-sm">
-                <div className="rounded-2xl border border-[color:var(--gs-border-subtle)] bg-white/60 p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-xs font-semibold text-slate-600">
-                      How we scored your tickers
-                    </div>
-
-                    {factors.length > 3 && scoringDone && (
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-emerald-800 underline-offset-2 hover:text-emerald-900 hover:underline"
-                        onClick={() => setShowAllInvestmentDetails((v) => !v)}
-                        aria-expanded={showAllInvestmentDetails}
-                      >
-                        {showAllInvestmentDetails
-                          ? "Hide details"
-                          : `Show all (${factors.length})`}
-                      </button>
-                    )}
-                  </div>
-
-                  <div className={showAllInvestmentDetails ? "mt-2 max-h-80 overflow-auto pr-1" : "mt-2"}>
-                    <ul className="space-y-2 text-sm">
-                      {(showAllInvestmentDetails
-                        ? factors
-                        : factors.slice(0, 3)
-                      ).map((f) => (
-                        <li
-                          key={f.ticker}
-                          className="flex flex-col gap-0.5 sm:flex-row sm:items-start sm:justify-between"
-                        >
-                          <div>
-                            <span className="font-semibold text-slate-900">{f.ticker}</span>
-                            {f.name ? <span className="text-slate-500"> · {f.name}</span> : null}
-                            <div className="text-xs text-slate-500">{f.explanation}</div>
-                            {f.filingDate && (
-                              <div className="text-xs text-slate-400">
-                                SEC filing: {f.filingDate}
-                              </div>
-                            )}
-                            {f.fossilHoldings && f.fossilHoldings.length > 0 && (
-                              <div className="mt-1 text-xs text-slate-400">
-                                Top fossil holdings:{" "}
-                                {f.fossilHoldings.map((h) =>
-                                  `${h.name} (${h.pctOfPortfolio.toFixed(1)}%)`
-                                ).join(", ")}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-black/5 sm:mt-0">
-                            {f.status === "loading" ? (
-                              <span className="text-slate-400 animate-pulse">Scoring…</span>
-                            ) : f.status === "error" ? (
-                              <span className="text-red-500">Error</span>
-                            ) : (
-                              <>
-                                <span>{f.points}</span>
-                                <span className="text-slate-400">/ 36</span>
-                              </>
-                            )}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="text-xs text-slate-500">
-              Source: <span className="font-semibold">SEC EDGAR N-PORT filings</span> — fossil exposure scored from actual fund holdings
-            </div>
-          </Card>
-
           {/* ── Recommendations ── */}
           <Card className="space-y-3">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -786,10 +788,25 @@ export default function ResultsPage() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <p className="text-sm text-[color:var(--gs-text-muted)]">
                   Get a personalized action plan tailored to your specific scores and answers, powered by AI.
                 </p>
+                <div className="space-y-1.5">
+                  <label htmlFor="user-goals" className="block text-xs font-medium text-slate-600">
+                    What are your green goals? <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <textarea
+                    id="user-goals"
+                    value={userGoals}
+                    onChange={(e) => setUserGoals(e.target.value.slice(0, 500))}
+                    placeholder="e.g., I want to switch to an EV but I'm not sure where to start, or I'd like to reduce my carbon footprint on a budget..."
+                    rows={3}
+                    maxLength={500}
+                    className="w-full rounded-xl border border-[color:var(--gs-border-subtle)] bg-white/70 px-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+                  />
+                  <p className="text-right text-[10px] text-slate-400">{userGoals.length}/500</p>
+                </div>
                 <Button variant="primary" size="sm" onClick={fetchActionPlan}>
                   Generate my action plan
                 </Button>
